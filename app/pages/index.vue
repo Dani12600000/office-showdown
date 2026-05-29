@@ -83,10 +83,13 @@ const inscrevendo = ref<string | null>(null)
 const mostrarErro = ref(false)
 const mensagemErro = ref('')
 
-async function entrarNoTorneio(torneio: TorneioCard, preferencia: 'JOGAR' | 'PLATEIA' = 'JOGAR') {
+async function entrarNoTorneio(torneio: TorneioCard) {
   inscrevendo.value = torneio.id
   try {
-    await inscreverMe(torneio.id, preferencia)
+    // Inscreve com preferência neutra (JOGAR). O utilizador escolhe
+    // jogar/plateia já dentro do lobby — igual ao fluxo dos bots.
+    await inscreverMe(torneio.id, 'JOGAR')
+    await navigateTo(`/torneio/${torneio.id}`)
   } catch (e: any) {
     mensagemErro.value = e.message
     mostrarErro.value = true
@@ -305,25 +308,16 @@ const participacaoConfig = {
               </v-btn>
             </template>
 
-            <!-- Pode inscrever-se em LOBBY (admin ou não) — escolhe Jogar ou Plateia -->
+            <!-- Pode inscrever-se em LOBBY — escolhe jogar/plateia já dentro -->
             <template v-else-if="torneio.status === 'LOBBY'">
               <v-btn
                 color="primary"
-                prepend-icon="mdi-sword-cross"
+                prepend-icon="mdi-login"
                 class="flex-grow-1"
                 :loading="inscrevendo === torneio.id"
-                @click="entrarNoTorneio(torneio, 'JOGAR')"
+                @click="entrarNoTorneio(torneio)"
               >
-                Jogar
-              </v-btn>
-              <v-btn
-                variant="tonal"
-                color="primary"
-                prepend-icon="mdi-eye-outline"
-                :loading="inscrevendo === torneio.id"
-                @click="entrarNoTorneio(torneio, 'PLATEIA')"
-              >
-                Plateia
+                Entrar
               </v-btn>
             </template>
 

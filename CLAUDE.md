@@ -26,6 +26,13 @@ Os utilizadores usam o telemóvel como comando (jogadores), para apostar (platei
 - Realtime em todas as tabelas; composables recarregam ao focar a aba (rede de segurança, abas em background perdem eventos).
 - Componentes auto-importados pelo Nuxt; tipos do Supabase em `app/types/database.types.ts`.
 
+## ⚠️ Regra de ouro: BOTS = JOGADORES REAIS
+**Bots e jogadores reais têm exatamente o mesmo comportamento em todo o fluxo.** São intercambiáveis do ponto de vista do motor e da UI:
+- Picker Jogar/Plateia no lobby — mesmo UI, mesmas regras de bloqueio (`status_inscricao !== 'QUER_JOGAR'` ou torneio fora de LOBBY).
+- **Nunca há botão para entrar numa partida.** Os bots são levados ao palco pelo admin (FAB → `/partida/[id]?como=botId`); os jogadores reais são **auto-navegados** para a página da partida quando o admin a apresenta (`partida_destaque_id`). Não criar botões "Jogar agora" — é o sistema que leva o jogador ao palco no momento certo.
+- Até a partida ser apresentada, ambos vêem apenas "aguarda a tua vez no palco" — nada para clicar.
+- Qualquer feature nova (jogos, apostas, etc.) tem de ser validada nos dois caminhos: bot personificado via `?como=botId` e jogador real autenticado. Se a regra divergir entre os dois, está errado.
+
 ## Arquitetura / ficheiros-chave
 ```
 app/

@@ -36,6 +36,23 @@ export const estadoInicialPPT = () => ({
   historico: [] as { e1: string; e2: string; vencedor: string | null }[],
 })
 
+// Estado inicial de uma partida de Jogo do Galo (3×3)
+export const estadoInicialGalo = () => ({
+  tabuleiro: Array(9).fill(null) as (1 | 2 | null)[],
+  vez: 1 as 1 | 2,
+  comeca: 1 as 1 | 2,
+  empates: 0,
+  linha_vencedora: null as number[] | null,
+})
+
+// Estado inicial por tipo de jogo
+export const estadoInicialDe = (tipo: JogoTipo) => {
+  switch (tipo) {
+    case 'GALO': return estadoInicialGalo()
+    default:     return estadoInicialPPT()
+  }
+}
+
 export const useLobby = (torneioId: string) => {
   const supabase = useSupabaseClient<Database>()
   const { perfil } = useAuth()
@@ -123,6 +140,33 @@ export const useLobby = (torneioId: string) => {
     if (error) throw new Error(error.message)
     await carregarLobby()
   }
+
+  // Auto-limpar o destaque 4s depois da revelação terminar — palco fica
+  // sempre "limpinho" entre partidas. Qualquer cliente tenta; só admins
+  // passam o RLS, mas o UPDATE é idempotente. Rastreado por id da partida
+  // para não duplicar tentativas.
+  let limparTimer: ReturnType<typeof setTimeout> | null = null
+  let destaqueAgendado: string | null = null
+  watch(partidaDestaque, (p) => {
+    if (limparTimer) { clearTimeout(limparTimer); limparTimer = null }
+    if (!p || p.status !== 'TERMINADO') { destaqueAgendado = null; return }
+    if (destaqueAgendado === p.id) return
+
+    const fimRevelacao = p.revelar_ate ? new Date(p.revelar_ate).getTime() : Date.now()
+    const delay = Math.max(0, fimRevelacao - Date.now() + 4000)
+
+    destaqueAgendado = p.id
+    limparTimer = setTimeout(async () => {
+      // Só limpa se ainda for esta a partida em destaque
+      if (torneio.value?.partida_destaque_id !== p.id) return
+      try {
+        await supabase
+          .from('torneios')
+          .update({ partida_destaque_id: null })
+          .eq('id', torneioId)
+      } catch { /* sem permissão (não-admin) → ignora */ }
+    }, delay)
+  })
 
   // Escolhe uma partida aleatória da ronda (prefere as que ainda estão a jogar)
   const destacarAleatoria = async () => {
@@ -228,12 +272,24 @@ export const useLobby = (torneioId: string) => {
     await carregarLobby()
   }
 
-  // Define a PREFERÊNCIA de um participante (apenas uma dica; não decide o papel)
+  // Define a PREFERÊNCIA de um participante (admin a personificar bots).
+  // Utilizadores reais não-admin usam `definirMinhaPreferencia` em vez disto.
   const definirPreferencia = async (participanteId: string, pref: 'JOGAR' | 'PLATEIA') => {
     const { error } = await supabase
       .from('torneio_participantes')
       .update({ preferencia: pref })
       .eq('id', participanteId)
+    if (error) throw new Error(error.message)
+    await carregarLobby()
+  }
+
+  // O próprio utilizador define a sua preferência (via RPC — não precisa de RLS admin).
+  // A RPC valida que o torneio está em LOBBY e que o admin ainda não decidiu.
+  const definirMinhaPreferencia = async (pref: 'JOGAR' | 'PLATEIA') => {
+    const { error } = await supabase.rpc('definir_minha_preferencia', {
+      p_torneio_id: torneioId,
+      p_pref: pref,
+    } as any)
     if (error) throw new Error(error.message)
     await carregarLobby()
   }
@@ -275,6 +331,7 @@ export const useLobby = (torneioId: string) => {
 
   // Cria pares para uma lista de jogadores (devolve linhas de partida)
   const gerarPartidas = (ids: string[], ronda: number) => {
+    const tipo = jogoTipoDe(ronda)
     const linhas = []
     for (let i = 0; i < ids.length; i += 2) {
       const j1 = ids[i]
@@ -287,7 +344,7 @@ export const useLobby = (torneioId: string) => {
         jogador2_id: j2,
         vencedor_id: j2 ? null : j1,           // bye → vencedor é o j1
         status: j2 ? ('A_JOGAR' as const) : ('TERMINADO' as const),
-        estado: estadoInicialPPT(),
+        estado: estadoInicialDe(tipo),
       })
     }
     return linhas
@@ -390,7 +447,10 @@ export const useLobby = (torneioId: string) => {
     useEventListener(document, 'visibilitychange', () => { if (!document.hidden) carregarLobby() })
   }
 
-  onUnmounted(() => supabase.removeChannel(canal))
+  onUnmounted(() => {
+    supabase.removeChannel(canal)
+    if (limparTimer) clearTimeout(limparTimer)
+  })
 
   return {
     torneio: readonly(torneio),
@@ -426,6 +486,7 @@ export const useLobby = (torneioId: string) => {
     definirMax,
     definirJogoRonda,
     definirPreferencia,
+    definirMinhaPreferencia,
     preencherAteMax,
     sortearElenco,
     iniciarTorneio,

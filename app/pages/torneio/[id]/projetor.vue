@@ -12,8 +12,8 @@ const urlEntrada = computed(() => `${url.origin}/signup`)
 
 const {
   torneio, loading,
-  confirmados, partidasRonda, perfilDe, partidaDestaque,
-  faseAtual, jogoAtual,
+  participantes, partidasRonda, perfilDe, partidaDestaque,
+  faseAtual, jogoAtual, jogoTipoDe,
   carregarLobby,
 } = useLobby(torneioId)
 
@@ -26,47 +26,14 @@ const terminado = computed(() => torneio.value?.status === 'FINAL')
 const campeao   = computed(() => perfilDe(torneio.value?.vencedor_id ?? null))
 
 // ---- Partida em destaque ----
-const dest    = computed(() => partidaDestaque.value)
-const estadoD = computed<any>(() => dest.value?.estado ?? {})
-const j1      = computed(() => perfilDe(dest.value?.jogador1_id ?? null))
-const j2      = computed(() => perfilDe(dest.value?.jogador2_id ?? null))
-const pontos1 = computed(() => estadoD.value.pontos_j1 ?? 0)
-const pontos2 = computed(() => estadoD.value.pontos_j2 ?? 0)
-const subRonda = computed(() => estadoD.value.sub_ronda ?? 1)
-const j1Jogou = computed(() => !!estadoD.value.escolha_j1)
-const j2Jogou = computed(() => !!estadoD.value.escolha_j2)
-const destTerminada = computed(() => dest.value?.status === 'TERMINADO')
-const destVencedor  = computed(() =>
-  dest.value?.vencedor_id === j1.value?.id ? j1.value : j2.value
-)
-
-// Fase de revelação (5s do servidor)
-const agora = useAgora()
-const revelando = computed(() => {
-  const r = dest.value?.revelar_ate
-  return r ? new Date(r).getTime() > agora.value : false
-})
-// Vencedor só aparece depois da revelação
-const vitoriaVisivel = computed(() => destTerminada.value && !revelando.value)
-
-const escolhasMap: Record<string, string> = { pedra: '✊', papel: '✋', tesoura: '✌️' }
-const emoji = (v: string | null | undefined) => (v ? escolhasMap[v] : '❔')
-
-const ultima = computed(() => {
-  const h = estadoD.value.historico ?? []
-  return h.length ? h[h.length - 1] : null
-})
-const resultadoUltima = computed(() => {
-  const u = ultima.value
-  if (!u) return null
-  if (!u.vencedor) return { texto: 'Empate', cor: 'warning' }
-  const nome = u.vencedor === j1.value?.id ? j1.value?.name : j2.value?.name
-  return { texto: `${nome} ganha a ronda`, cor: 'success' }
-})
+const dest = computed(() => partidaDestaque.value)
+const j1 = computed(() => perfilDe(dest.value?.jogador1_id ?? null))
+const j2 = computed(() => perfilDe(dest.value?.jogador2_id ?? null))
+const jogoDestTipo = computed(() => dest.value ? jogoTipoDe(dest.value.ronda) : 'PPT')
 
 const inicial = (id: string | null) => perfilDe(id)?.name?.charAt(0).toUpperCase() ?? '?'
 
-// ---- Confetti ----
+// ---- Confetti (campeão) ----
 let timer: ReturnType<typeof setInterval> | null = null
 watch(terminado, (fim) => {
   if (fim) {
@@ -77,11 +44,6 @@ watch(terminado, (fim) => {
     }, 1800)
   } else if (timer) { clearInterval(timer); timer = null }
 }, { immediate: true })
-
-// Burst quando o vencedor da partida em destaque é revelado (após os 5s)
-watch(vitoriaVisivel, (vis, antes) => {
-  if (vis && !antes) confetti({ particleCount: 120, spread: 90, origin: { y: 0.6 } })
-})
 
 onUnmounted(() => { if (timer) clearInterval(timer) })
 </script>
@@ -109,7 +71,7 @@ onUnmounted(() => { if (timer) clearInterval(timer) })
       </div>
     </div>
 
-    <!-- ===== CAMPEÃO DO TORNEIO ===== -->
+    <!-- ===== CAMPEÃO ===== -->
     <div v-if="terminado" class="text-center py-10">
       <p class="text-overline text-medium-emphasis" style="font-size:1.2rem !important">Campeão</p>
       <v-avatar size="240" color="primary" class="champion-glow my-6">
@@ -122,8 +84,6 @@ onUnmounted(() => { if (timer) clearInterval(timer) })
 
     <!-- ===== LOBBY ===== -->
     <div v-else-if="emLobby" class="lobby-grid">
-
-      <!-- Painel do QR (entrar) -->
       <div class="qr-painel text-center">
         <p class="text-overline text-medium-emphasis mb-2" style="font-size:1rem !important">Entra no jogo</p>
         <QrCode :value="urlEntrada" :size="300" class="mx-auto" />
@@ -134,26 +94,53 @@ onUnmounted(() => { if (timer) clearInterval(timer) })
         <p class="text-body-1 text-medium-emphasis mt-1">Regista-te e escolhe se queres jogar ou ficar na plateia.</p>
       </div>
 
-      <!-- Jogadores já dentro -->
       <div class="jogadores-painel">
-        <v-chip size="large" color="success" class="mb-6">
-          <v-icon start>mdi-door-open</v-icon>Inscrições abertas
-        </v-chip>
+        <div class="d-flex gap-2 mb-6 flex-wrap justify-center">
+          <v-chip size="large" color="success">
+            <v-icon start>mdi-door-open</v-icon>Inscrições abertas
+          </v-chip>
+          <v-chip size="large" variant="tonal" color="primary">
+            <v-icon start>mdi-account-group</v-icon>{{ participantes.length }} dentro
+          </v-chip>
+        </div>
         <div class="jogadores-lobby">
-          <div v-for="c in confirmados" :key="c.id" class="text-center">
-            <v-avatar size="84" color="primary" class="player-avatar mb-2">
-              <v-img v-if="c.utilizador?.avatar_url" :src="c.utilizador.avatar_url" cover />
-              <span v-else class="text-h5 font-weight-black text-surface">{{ c.utilizador?.name?.charAt(0).toUpperCase() }}</span>
+          <div v-for="p in participantes" :key="p.id" class="text-center jogador-lobby">
+            <v-avatar
+              size="84"
+              color="primary"
+              class="player-avatar mb-2"
+              :class="{
+                'player-avatar--jogar':   p.status_inscricao === 'JOGADOR_CONFIRMADO',
+                'player-avatar--plateia': p.status_inscricao === 'PLATEIA',
+                'player-avatar--pending': p.status_inscricao === 'QUER_JOGAR',
+              }"
+            >
+              <v-img v-if="p.utilizador?.avatar_url" :src="p.utilizador.avatar_url" cover />
+              <span v-else class="text-h5 font-weight-black text-surface">{{ p.utilizador?.name?.charAt(0).toUpperCase() }}</span>
             </v-avatar>
-            <div class="text-subtitle-1 font-weight-bold">{{ c.utilizador?.name }}</div>
+            <div class="text-subtitle-2 font-weight-bold d-flex align-center justify-center gap-1">
+              <span>{{ p.utilizador?.name }}</span>
+              <v-icon v-if="p.utilizador?.is_bot" size="14" class="text-medium-emphasis">mdi-robot</v-icon>
+            </div>
+            <div class="text-caption mt-1">
+              <span v-if="p.status_inscricao === 'JOGADOR_CONFIRMADO'" class="text-success">
+                <v-icon size="12">mdi-sword-cross</v-icon> vai jogar
+              </span>
+              <span v-else-if="p.status_inscricao === 'PLATEIA'" class="text-primary">
+                <v-icon size="12">mdi-eye</v-icon> plateia
+              </span>
+              <span v-else class="text-medium-emphasis">
+                <v-icon size="12">{{ p.preferencia === 'PLATEIA' ? 'mdi-eye-outline' : 'mdi-sword-cross' }}</v-icon>
+                prefere {{ p.preferencia === 'PLATEIA' ? 'plateia' : 'jogar' }}
+              </span>
+            </div>
           </div>
-          <div v-if="!confirmados.length" class="text-h6 text-medium-emphasis py-8">À espera dos primeiros jogadores…</div>
+          <div v-if="!participantes.length" class="text-h6 text-medium-emphasis py-8">À espera dos primeiros…</div>
         </div>
       </div>
-
     </div>
 
-    <!-- ===== ARVORE: REVELAÇÃO DOS CONFRONTOS ===== -->
+    <!-- ===== ARVORE ===== -->
     <div v-else-if="naArvore">
       <div v-motion-fade class="text-center mb-8">
         <v-chip size="large" color="secondary" class="font-weight-bold">
@@ -185,64 +172,18 @@ onUnmounted(() => { if (timer) clearInterval(timer) })
 
     <!-- ===== A JOGAR: PARTIDA EM DESTAQUE ===== -->
     <template v-else-if="emJogo">
-      <!-- Há partida em destaque → palco ao vivo -->
-      <div v-if="dest" class="palco">
-        <div class="arena mb-8">
-          <!-- Jogador 1 -->
-          <div class="text-center jogador" :class="{ 'jogador--lose': vitoriaVisivel && dest.vencedor_id !== j1?.id }">
-            <v-avatar size="180" class="ring-blue mb-3">
-              <v-img v-if="j1?.avatar_url" :src="j1.avatar_url" cover />
-              <span v-else class="text-blue font-weight-black" style="font-size:4rem">{{ inicial(dest.jogador1_id) }}</span>
-            </v-avatar>
-            <h2 class="text-h4 font-weight-black">{{ j1?.name }}</h2>
-            <div class="mt-2">
-              <v-chip v-if="!vitoriaVisivel && !revelando && j1Jogou" color="success" size="small"><v-icon start size="14">mdi-check</v-icon>Já jogou</v-chip>
-              <v-chip v-else-if="!vitoriaVisivel && !revelando" color="surface-variant" size="small">A pensar…</v-chip>
-            </div>
-          </div>
-
-          <!-- Placar -->
-          <div class="text-center">
-            <div class="placar">
-              <span class="text-blue">{{ pontos1 }}</span>
-              <span class="text-medium-emphasis mx-3">:</span>
-              <span class="text-red">{{ pontos2 }}</span>
-            </div>
-            <v-chip v-if="!vitoriaVisivel" size="small" variant="tonal">Ronda {{ subRonda }} · à melhor de 3</v-chip>
-            <v-chip v-else color="accent" size="large" class="font-weight-bold"><v-icon start>mdi-trophy</v-icon>{{ destVencedor?.name }} vence!</v-chip>
-          </div>
-
-          <!-- Jogador 2 -->
-          <div class="text-center jogador" :class="{ 'jogador--lose': vitoriaVisivel && dest.vencedor_id !== j2?.id }">
-            <v-avatar size="180" class="ring-red mb-3">
-              <v-img v-if="j2?.avatar_url" :src="j2.avatar_url" cover />
-              <span v-else class="text-red font-weight-black" style="font-size:4rem">{{ inicial(dest.jogador2_id) }}</span>
-            </v-avatar>
-            <h2 class="text-h4 font-weight-black">{{ j2?.name }}</h2>
-            <div class="mt-2">
-              <v-chip v-if="!vitoriaVisivel && !revelando && j2Jogou" color="success" size="small"><v-icon start size="14">mdi-check</v-icon>Já jogou</v-chip>
-              <v-chip v-else-if="!vitoriaVisivel && !revelando" color="surface-variant" size="small">A pensar…</v-chip>
-            </div>
-          </div>
+      <div v-if="dest">
+        <JogoPPTProjetor  v-if="jogoDestTipo === 'PPT'"  :partida="dest" :jogador1="j1" :jogador2="j2" />
+        <JogoGaloProjetor v-else-if="jogoDestTipo === 'GALO'" :partida="dest" :jogador1="j1" :jogador2="j2" />
+        <div v-else class="text-center py-12">
+          <v-icon size="80" color="surface-variant" class="mb-4">mdi-hammer-wrench</v-icon>
+          <h2 class="text-h4 font-weight-bold">Este jogo ainda está em construção</h2>
         </div>
-
-        <!-- Revelação da última ronda — só durante os 5s; depois some e volta a "A pensar" -->
-        <v-expand-transition>
-          <div v-if="resultadoUltima && revelando" class="text-center reveal">
-            <div class="d-flex align-center justify-center gap-10">
-              <div class="emoji text-blue">{{ emoji(ultima.e1) }}</div>
-              <span class="text-h5 text-medium-emphasis">vs</span>
-              <div class="emoji text-red">{{ emoji(ultima.e2) }}</div>
-            </div>
-            <v-chip :color="resultadoUltima.cor" size="large" class="mt-4 font-weight-bold">{{ resultadoUltima.texto }}</v-chip>
-          </div>
-        </v-expand-transition>
       </div>
 
-      <!-- Sem destaque → standby -->
-      <div v-else class="text-center py-12">
-        <v-icon size="80" color="surface-variant" class="mb-4">mdi-television-off</v-icon>
-        <h2 class="text-h4 font-weight-bold mb-2">À espera da próxima partida…</h2>
+      <div v-else class="standby">
+        <v-icon size="96" color="surface-variant" class="mb-4">mdi-television-off</v-icon>
+        <h2 class="text-h3 font-weight-bold mb-2">À espera da próxima partida…</h2>
         <p class="text-h6 text-medium-emphasis">O apresentador vai escolher o próximo confronto.</p>
       </div>
     </template>
@@ -256,7 +197,12 @@ onUnmounted(() => { if (timer) clearInterval(timer) })
   outline: 4px solid rgb(var(--v-theme-accent));
   outline-offset: 4px;
 }
-.player-avatar { outline: 3px solid rgba(0,229,255,0.5); outline-offset: 3px; }
+.player-avatar { outline: 3px solid rgba(255,255,255,0.15); outline-offset: 3px; transition: outline-color 0.3s, box-shadow 0.3s; }
+.player-avatar--jogar   { outline-color: rgb(var(--v-theme-success)); box-shadow: 0 0 20px rgba(0,230,118,0.4); }
+.player-avatar--plateia { outline-color: rgb(var(--v-theme-primary)); box-shadow: 0 0 20px rgba(0,229,255,0.4); }
+.player-avatar--pending { outline-color: rgba(255,255,255,0.2); }
+
+.jogador-lobby { width: 110px; }
 
 .lobby-grid {
   display: grid;
@@ -269,70 +215,32 @@ onUnmounted(() => { if (timer) clearInterval(timer) })
   .lobby-grid { grid-template-columns: 1fr; gap: 40px; }
 }
 
-.qr-painel {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.jogadores-painel {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
+.qr-painel { display: flex; flex-direction: column; align-items: center; }
+.jogadores-painel { display: flex; flex-direction: column; align-items: center; }
 .jogadores-lobby {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 32px 28px;
-  max-width: 900px;
-  margin: 0 auto;
+  display: flex; flex-wrap: wrap; justify-content: center;
+  gap: 32px 28px; max-width: 900px; margin: 0 auto;
 }
 
-.palco { padding-top: 2vh; }
+.standby {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  /* Altura útil = viewport - cabeçalho (≈ pa-8 + logo/título + mb-6) */
+  min-height: calc(100vh - 220px);
+}
 
 .confronto {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 16px;
-  padding: 20px;
+  display: flex; align-items: center; justify-content: center;
+  gap: 16px; padding: 20px;
   border-radius: 20px;
   border: 1px solid rgba(255,255,255,0.1);
   background: rgba(255,255,255,0.03);
 }
 .jogador-mini { flex: 1; min-width: 0; }
-.vs-grande {
-  font-size: 1.4rem;
-  font-weight: 900;
-  color: rgba(255,255,255,0.5);
-  flex-shrink: 0;
-}
-
-.arena {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: clamp(48px, 9vw, 140px);
-}
-
-.jogador {
-  width: clamp(180px, 18vw, 260px);
-  transition: opacity 0.4s;
-}
-.jogador--lose { opacity: 0.35; }
-
-.placar {
-  font-size: clamp(4rem, 7vw, 7rem);
-  font-weight: 900;
-  line-height: 1;
-  padding: 0 12px;
-  white-space: nowrap;
-}
-
-.reveal { margin-top: 2vh; }
-.emoji { font-size: 7rem; line-height: 1; }
+.vs-grande { font-size: 1.4rem; font-weight: 900; color: rgba(255,255,255,0.5); flex-shrink: 0; }
 
 .ring-blue { outline: 4px solid #00B0FF; outline-offset: 4px; background: rgba(0,176,255,0.15); box-shadow: 0 0 40px rgba(0,176,255,0.5); }
 .ring-red  { outline: 4px solid #FF1744; outline-offset: 4px; background: rgba(255,23,68,0.15); box-shadow: 0 0 40px rgba(255,23,68,0.5); }

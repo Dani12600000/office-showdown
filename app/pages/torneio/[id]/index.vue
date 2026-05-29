@@ -9,14 +9,14 @@ const torneioId = route.params.id as string
 const { isAdmin, perfil } = useAuth()
 const {
   torneio, loading, participantes,
-  confirmados, pendentes, plateia,
+  confirmados, pendentes, plateia, minhaParticipacao,
   podeIniciar, maxJogadores, confirmadosCheios, jogoAtual, faseAtual,
   jogosRonda, jogoTipoDe, numRondas,
   partidasRonda, minhaPartida, rondaTerminada, perfilDe,
   partidaDestaque, destacarPartida, destacarAleatoria,
   carregarLobby,
   confirmarJogador, moverParaPlateia, colocarPendente, adicionarBot,
-  definirMax, definirJogoRonda, definirPreferencia, preencherAteMax, sortearElenco,
+  definirMax, definirJogoRonda, definirPreferencia, definirMinhaPreferencia, preencherAteMax, sortearElenco,
   iniciarTorneio, comecarJogos, avancarRonda,
 } = useLobby(torneioId)
 
@@ -42,12 +42,50 @@ const comoParticipante = computed(() =>
     ? participantes.value.find(p => p.utilizador_id === comoLobbyId.value) ?? null
     : null
 )
+
+// Vista de escolha para utilizadores reais (não-admin) inscritos num torneio em LOBBY.
+// Mesma UI que os bots usam — picker entre Jogar / Plateia.
+const minhaParticipacaoNoLobby = computed(() => {
+  if (isAdmin.value) return null
+  if (torneio.value?.status !== 'LOBBY') return null
+  return participantes.value.find(p => p.utilizador_id === perfil.value?.id) ?? null
+})
+
+// O participante atualmente em modo "picker" (bot personificado OU eu mesmo).
+const participantePicker = computed(() =>
+  comoParticipante.value ?? minhaParticipacaoNoLobby.value
+)
+
+// A escolha está bloqueada quando o admin já decidiu (confirmou ou plateia)
+// ou quando o torneio já saiu do LOBBY. Vale para mim e para bots.
+const escolhaBloqueada = computed(() => {
+  if (!participantePicker.value) return false
+  if (torneio.value?.status !== 'LOBBY') return true
+  return participantePicker.value.status_inscricao !== 'QUER_JOGAR'
+})
+
+const mensagemBloqueio = computed(() => {
+  if (!participantePicker.value) return ''
+  if (torneio.value?.status !== 'LOBBY') return 'O torneio já começou.'
+  if (participantePicker.value.status_inscricao === 'JOGADOR_CONFIRMADO')
+    return 'O admin confirmou-te como jogador.'
+  if (participantePicker.value.status_inscricao === 'PLATEIA')
+    return 'O admin colocou-te na plateia.'
+  return ''
+})
+
 const aEscolher = ref(false)
 async function escolherLobby(pref: 'JOGAR' | 'PLATEIA') {
-  if (!comoParticipante.value) return
+  if (!participantePicker.value || escolhaBloqueada.value) return
   aEscolher.value = true
   try {
-    await definirPreferencia(comoParticipante.value.id, pref)
+    // Eu próprio → RPC (não preciso de ser admin).
+    // Admin a personificar bot → UPDATE direto.
+    if (participantePicker.value.utilizador_id === perfil.value?.id) {
+      await definirMinhaPreferencia(pref)
+    } else {
+      await definirPreferencia(participantePicker.value.id, pref)
+    }
   } catch (e: any) {
     mensagemErro.value = e.message; mostrarErro.value = true
   } finally {
@@ -103,6 +141,59 @@ async function comecar() {
 }
 const terminado = computed(() => torneio.value?.status === 'FINAL')
 const campeao = computed(() => perfilDe(torneio.value?.vencedor_id ?? null))
+
+// ---- Vista focada do jogador (não-admin) durante ARVORE/JOGO ----
+// O bracket completo só interessa ao admin. O jogador real vê só
+// a sua própria partida (ou estado eliminado/plateia).
+const minhaPartidaDestaRonda = computed(() =>
+  partidasRonda.value.find(p =>
+    p.jogador1_id === perfil.value?.id || p.jogador2_id === perfil.value?.id
+  ) ?? null
+)
+const sou1NaMinhaPartida = computed(() =>
+  minhaPartidaDestaRonda.value?.jogador1_id === perfil.value?.id
+)
+const meuAdversario = computed(() => {
+  const m = minhaPartidaDestaRonda.value
+  if (!m) return null
+  return sou1NaMinhaPartida.value
+    ? perfilDe(m.jogador2_id)
+    : perfilDe(m.jogador1_id)
+})
+const minhaPartidaEmDestaque = computed(() =>
+  !!minhaPartidaDestaRonda.value &&
+  partidaDestaque.value?.id === minhaPartidaDestaRonda.value.id
+)
+const minhaPartidaAEsperar = computed(() =>
+  torneio.value?.status === 'JOGO' &&
+  minhaPartidaDestaRonda.value?.status === 'A_JOGAR' &&
+  !minhaPartidaEmDestaque.value
+)
+
+// Tal como os bots: quando o admin apresenta a minha partida, sou levado
+// automaticamente para a página da partida — sem botão para clicar.
+watch(minhaPartidaEmDestaque, (emPalco) => {
+  if (!emPalco) return
+  if (isAdmin.value) return
+  if (torneio.value?.status !== 'JOGO') return
+  if (minhaPartidaDestaRonda.value?.status !== 'A_JOGAR') return
+  navigateTo(`/torneio/${torneioId}/partida/${minhaPartidaDestaRonda.value.id}`)
+}, { immediate: true })
+const ganhei = computed(() =>
+  minhaPartidaDestaRonda.value?.status === 'TERMINADO' &&
+  minhaPartidaDestaRonda.value?.vencedor_id === perfil.value?.id
+)
+const perdi = computed(() =>
+  minhaPartidaDestaRonda.value?.status === 'TERMINADO' &&
+  minhaPartidaDestaRonda.value?.vencedor_id !== perfil.value?.id
+)
+const souPlateia = computed(() =>
+  minhaParticipacao.value?.status_inscricao === 'PLATEIA'
+)
+const fuiEliminadoAntes = computed(() =>
+  minhaParticipacao.value?.status_inscricao === 'JOGADOR_CONFIRMADO' &&
+  !minhaPartidaDestaRonda.value
+)
 
 // Todos os bots do lobby (para personificar a escolha jogar/plateia)
 const botsLobby = computed(() =>
@@ -161,47 +252,67 @@ async function confirmarIniciar() {
     <v-progress-circular indeterminate color="primary" size="56" />
   </div>
 
-  <!-- ===== MODO PERSONIFICAÇÃO NO LOBBY (vista do jogador) ===== -->
-  <v-container v-else-if="torneio && comoParticipante" max-width="520" class="py-10">
+  <!-- ===== VISTA DE ESCOLHA (jogador inscrito OU bot personificado) ===== -->
+  <v-container v-else-if="torneio && participantePicker" max-width="520" class="py-10">
+    <v-btn variant="text" size="small" prepend-icon="mdi-arrow-left" to="/" class="mb-4 text-medium-emphasis px-1">
+      Voltar aos torneios
+    </v-btn>
+
     <div v-motion-fade class="text-center mb-8">
       <v-avatar size="96" color="primary" class="mb-3" style="outline:3px solid rgba(0,229,255,0.5); outline-offset:3px">
-        <v-img v-if="comoParticipante.utilizador?.avatar_url" :src="comoParticipante.utilizador.avatar_url" cover />
-        <span v-else class="text-h4 font-weight-black text-surface">{{ comoParticipante.utilizador?.name?.charAt(0).toUpperCase() }}</span>
+        <v-img v-if="participantePicker.utilizador?.avatar_url" :src="participantePicker.utilizador.avatar_url" cover />
+        <span v-else class="text-h4 font-weight-black text-surface">{{ participantePicker.utilizador?.name?.charAt(0).toUpperCase() }}</span>
       </v-avatar>
-      <h2 class="text-h5 font-weight-black">Olá, {{ comoParticipante.utilizador?.name }}!</h2>
-      <p class="text-body-2 text-medium-emphasis mt-1">{{ torneio.nome }} — o que preferes?</p>
+      <h2 class="text-h5 font-weight-black">
+        {{ comoParticipante ? `Olá, ${participantePicker.utilizador?.name}!` : 'Estás dentro!' }}
+      </h2>
+      <p class="text-body-2 text-medium-emphasis mt-1">O que preferes?</p>
     </div>
+
+    <!-- Aviso de bloqueio quando o admin já decidiu -->
+    <v-alert
+      v-if="escolhaBloqueada"
+      type="info"
+      variant="tonal"
+      icon="mdi-lock-outline"
+      class="mb-4"
+    >
+      <div class="font-weight-bold">{{ mensagemBloqueio }}</div>
+      <div class="text-caption mt-1">Já não dá para mudar a tua escolha.</div>
+    </v-alert>
 
     <v-row dense>
       <v-col cols="12" sm="6">
         <v-card
           rounded="xl"
-          :variant="comoParticipante.preferencia === 'JOGAR' ? 'flat' : 'tonal'"
-          :color="comoParticipante.preferencia === 'JOGAR' ? 'primary' : undefined"
+          :variant="participantePicker.preferencia === 'JOGAR' ? 'flat' : 'tonal'"
+          :color="participantePicker.preferencia === 'JOGAR' ? 'primary' : undefined"
           class="escolha-lobby"
+          :class="{ 'escolha-lobby--locked': escolhaBloqueada }"
           @click="escolherLobby('JOGAR')"
         >
           <v-card-text class="text-center pa-6">
             <v-icon size="48" class="mb-2">mdi-sword-cross</v-icon>
             <div class="text-h6 font-weight-bold">Quero jogar</div>
             <div class="text-caption">Quero entrar na competição</div>
-            <v-icon v-if="comoParticipante.preferencia === 'JOGAR'" class="mt-2">mdi-check-circle</v-icon>
+            <v-icon v-if="participantePicker.preferencia === 'JOGAR'" class="mt-2">mdi-check-circle</v-icon>
           </v-card-text>
         </v-card>
       </v-col>
       <v-col cols="12" sm="6">
         <v-card
           rounded="xl"
-          :variant="comoParticipante.preferencia === 'PLATEIA' ? 'flat' : 'tonal'"
-          :color="comoParticipante.preferencia === 'PLATEIA' ? 'primary' : undefined"
+          :variant="participantePicker.preferencia === 'PLATEIA' ? 'flat' : 'tonal'"
+          :color="participantePicker.preferencia === 'PLATEIA' ? 'primary' : undefined"
           class="escolha-lobby"
+          :class="{ 'escolha-lobby--locked': escolhaBloqueada }"
           @click="escolherLobby('PLATEIA')"
         >
           <v-card-text class="text-center pa-6">
             <v-icon size="48" class="mb-2">mdi-eye</v-icon>
             <div class="text-h6 font-weight-bold">Prefiro a plateia</div>
             <div class="text-caption">Quero assistir e apostar</div>
-            <v-icon v-if="comoParticipante.preferencia === 'PLATEIA'" class="mt-2">mdi-check-circle</v-icon>
+            <v-icon v-if="participantePicker.preferencia === 'PLATEIA'" class="mt-2">mdi-check-circle</v-icon>
           </v-card-text>
         </v-card>
       </v-col>
@@ -209,7 +320,7 @@ async function confirmarIniciar() {
 
     <v-progress-linear v-if="aEscolher" indeterminate color="primary" class="mt-4" rounded />
 
-    <p class="text-center text-caption text-medium-emphasis mt-6">
+    <p v-if="!escolhaBloqueada" class="text-center text-caption text-medium-emphasis mt-6">
       <v-icon size="14" start>mdi-information-outline</v-icon>
       Isto é só a preferência. Quem decide quem joga é o sorteio ou o admin.
     </p>
@@ -442,7 +553,96 @@ async function confirmarIniciar() {
         <h2 class="text-h4 font-weight-black">{{ campeao?.name }}</h2>
       </div>
 
-      <!-- ===== VISTA: BRACKET (a jogar) ===== -->
+      <!-- ===== VISTA: BRACKET (admin, a jogar) ===== -->
+      <TorneioBracket
+        v-else-if="aJogar && isAdmin"
+        :torneio-id="torneioId"
+        :partidas="partidasRonda"
+        :fase-atual="faseAtual"
+        :jogo-atual="jogoAtual"
+        :perfil-id="perfil?.id"
+        :is-admin="isAdmin"
+        :destaque-id="partidaDestaque?.id ?? null"
+        :bloquear-troca="destaqueEmJogo"
+        :perfil-de="perfilDe"
+        @destacar="apresentar"
+      />
+
+      <!-- ===== VISTA: FOCADA NO JOGADOR (não-admin, a jogar) ===== -->
+      <div v-else-if="aJogar && !isAdmin && minhaParticipacao" class="py-4">
+
+        <!-- Plateia -->
+        <v-card v-if="souPlateia" rounded="xl" variant="tonal" color="primary" class="text-center">
+          <v-card-text class="pa-8">
+            <v-icon size="64" class="mb-3">mdi-eye</v-icon>
+            <h2 class="text-h5 font-weight-black mb-1">Estás na plateia</h2>
+            <p class="text-body-2 text-medium-emphasis">Segue o evento no projetor com o resto do público.</p>
+          </v-card-text>
+        </v-card>
+
+        <!-- Tenho partida nesta ronda -->
+        <template v-else-if="minhaPartidaDestaRonda">
+          <p class="text-overline text-medium-emphasis text-center mb-2">A tua partida</p>
+
+          <v-card rounded="xl" elevation="0" class="match-card mb-4">
+            <v-card-text class="pa-6">
+              <div class="d-flex align-center justify-space-around">
+                <div class="text-center">
+                  <v-avatar size="84" :class="sou1NaMinhaPartida ? 'ring-blue' : 'ring-red'">
+                    <v-img v-if="perfil?.avatar_url" :src="perfil.avatar_url" cover />
+                    <span v-else class="text-h5 font-weight-black" :class="sou1NaMinhaPartida ? 'text-blue' : 'text-red'">
+                      {{ perfil?.name?.charAt(0).toUpperCase() }}
+                    </span>
+                  </v-avatar>
+                  <div class="text-body-1 font-weight-bold mt-2">Tu</div>
+                </div>
+                <div class="vs-mini">VS</div>
+                <div class="text-center">
+                  <v-avatar size="84" :class="sou1NaMinhaPartida ? 'ring-red' : 'ring-blue'">
+                    <v-img v-if="meuAdversario?.avatar_url" :src="meuAdversario.avatar_url" cover />
+                    <span v-else class="text-h5 font-weight-black" :class="sou1NaMinhaPartida ? 'text-red' : 'text-blue'">
+                      {{ meuAdversario?.name?.charAt(0).toUpperCase() ?? '?' }}
+                    </span>
+                  </v-avatar>
+                  <div class="text-body-1 font-weight-bold mt-2 d-flex align-center justify-center gap-1">
+                    {{ meuAdversario?.name ?? '—' }}
+                    <v-icon v-if="meuAdversario?.is_bot" size="14" class="text-medium-emphasis">mdi-robot</v-icon>
+                  </div>
+                </div>
+              </div>
+            </v-card-text>
+          </v-card>
+
+          <!-- Estados -->
+          <v-alert v-if="naArvore" type="info" variant="tonal" icon="mdi-clock-outline" rounded="lg">
+            Os confrontos foram revelados. Aguarda o admin começar os jogos.
+          </v-alert>
+
+          <!-- Em JOGO à espera do apresentador (igual aos bots — sem botão) -->
+          <v-alert v-else-if="minhaPartidaAEsperar" type="info" variant="tonal" icon="mdi-television-off" rounded="lg">
+            <strong>Aguarda a tua vez no palco.</strong> O jogo começa quando o apresentador trouxer a tua partida para o projetor.
+          </v-alert>
+
+          <v-alert v-else-if="ganhei" type="success" variant="tonal" icon="mdi-trophy" rounded="lg">
+            <strong>Ganhaste esta partida!</strong> Aguarda a próxima ronda.
+          </v-alert>
+
+          <v-alert v-else-if="perdi" type="warning" variant="tonal" icon="mdi-emoticon-sad-outline" rounded="lg">
+            <strong>Foste eliminado.</strong> Obrigado por jogares — segue o resto no projetor.
+          </v-alert>
+        </template>
+
+        <!-- Era jogador mas já não estou nesta ronda → eliminado em rondas anteriores -->
+        <v-card v-else-if="fuiEliminadoAntes" rounded="xl" variant="tonal" color="warning" class="text-center">
+          <v-card-text class="pa-8">
+            <v-icon size="64" class="mb-3">mdi-emoticon-sad-outline</v-icon>
+            <h2 class="text-h5 font-weight-black mb-1">Foste eliminado</h2>
+            <p class="text-body-2 text-medium-emphasis">Segue o resto do torneio no projetor.</p>
+          </v-card-text>
+        </v-card>
+      </div>
+
+      <!-- Fallback (não-admin sem participação): bracket normal -->
       <TorneioBracket
         v-else-if="aJogar"
         :torneio-id="torneioId"
@@ -765,6 +965,27 @@ async function confirmarIniciar() {
   transform: translateY(-4px);
   border-color: rgb(var(--v-theme-primary));
 }
+.escolha-lobby--locked {
+  pointer-events: none;
+  opacity: 0.6;
+  filter: grayscale(0.3);
+}
+
+.match-card {
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.02);
+}
+.vs-mini {
+  font-size: 1.4rem;
+  font-weight: 900;
+  color: rgba(255,255,255,0.5);
+  flex-shrink: 0;
+  padding: 0 8px;
+}
+.ring-blue { outline: 3px solid #00B0FF; outline-offset: 3px; background: rgba(0,176,255,0.15);
+  box-shadow: 0 0 20px rgba(0,176,255,0.4); }
+.ring-red  { outline: 3px solid #FF1744; outline-offset: 3px; background: rgba(255,23,68,0.15);
+  box-shadow: 0 0 20px rgba(255,23,68,0.4); }
 
 .text-blue { color: #40C4FF; }
 .text-red  { color: #FF5252; }
