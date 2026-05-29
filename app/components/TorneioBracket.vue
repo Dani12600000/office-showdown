@@ -8,8 +8,13 @@ const props = defineProps<{
   faseAtual: string
   jogoAtual: string
   perfilId?: string
+  isAdmin?: boolean
+  destaqueId?: string | null
+  bloquearTroca?: boolean
   perfilDe: (id: string | null) => Utilizador | null
 }>()
+
+const emit = defineEmits<{ destacar: [partidaId: string] }>()
 
 function inicial(u: Utilizador | null) {
   return u?.name?.charAt(0).toUpperCase() ?? '?'
@@ -42,38 +47,42 @@ function souEu(id: string | null) {
           :class="{ 'match-card--done': p.status === 'TERMINADO', 'match-card--mine': souEu(p.jogador1_id) || souEu(p.jogador2_id) }"
         >
           <v-card-text class="pa-4">
-            <!-- Jogador 1 (azul) -->
-            <div
-              class="player-row d-flex align-center gap-3 pa-2 rounded-lg"
-              :class="{ 'player-row--winner': p.status === 'TERMINADO' && p.vencedor_id === p.jogador1_id }"
-            >
-              <v-avatar size="40" class="ring-blue">
-                <v-img v-if="perfilDe(p.jogador1_id)?.avatar_url" :src="perfilDe(p.jogador1_id)!.avatar_url!" cover />
-                <span v-else class="font-weight-black text-blue">{{ inicial(perfilDe(p.jogador1_id)) }}</span>
-              </v-avatar>
-              <span class="flex-grow-1 text-body-2 font-weight-medium text-truncate">
-                {{ perfilDe(p.jogador1_id)?.name ?? '—' }}
-                <v-chip v-if="souEu(p.jogador1_id)" size="x-small" color="primary" class="ml-1">Tu</v-chip>
-              </span>
-              <v-icon v-if="p.status === 'TERMINADO' && p.vencedor_id === p.jogador1_id" color="success">mdi-trophy</v-icon>
-            </div>
+            <!-- Confronto frente-a-frente -->
+            <div class="d-flex align-stretch">
+              <!-- Jogador 1 (azul) -->
+              <div
+                class="lado pa-2 rounded-lg"
+                :class="{ 'lado--winner': p.status === 'TERMINADO' && p.vencedor_id === p.jogador1_id }"
+              >
+                <v-avatar size="48" class="ring-blue mb-2">
+                  <v-img v-if="perfilDe(p.jogador1_id)?.avatar_url" :src="perfilDe(p.jogador1_id)!.avatar_url!" cover />
+                  <span v-else class="font-weight-black text-blue">{{ inicial(perfilDe(p.jogador1_id)) }}</span>
+                </v-avatar>
+                <div class="text-body-2 font-weight-medium text-truncate w-100">
+                  {{ perfilDe(p.jogador1_id)?.name ?? '—' }}
+                </div>
+                <v-chip v-if="souEu(p.jogador1_id)" size="x-small" color="primary" class="mt-1">Tu</v-chip>
+                <v-icon v-if="p.status === 'TERMINADO' && p.vencedor_id === p.jogador1_id" color="success" size="18" class="mt-1">mdi-trophy</v-icon>
+              </div>
 
-            <div class="text-center text-caption text-medium-emphasis py-1">VS</div>
+              <!-- VS -->
+              <div class="vs-sep">VS</div>
 
-            <!-- Jogador 2 (vermelho) -->
-            <div
-              class="player-row d-flex align-center gap-3 pa-2 rounded-lg"
-              :class="{ 'player-row--winner': p.status === 'TERMINADO' && p.vencedor_id === p.jogador2_id }"
-            >
-              <v-avatar size="40" class="ring-red">
-                <v-img v-if="perfilDe(p.jogador2_id)?.avatar_url" :src="perfilDe(p.jogador2_id)!.avatar_url!" cover />
-                <span v-else class="font-weight-black text-red">{{ p.jogador2_id ? inicial(perfilDe(p.jogador2_id)) : '—' }}</span>
-              </v-avatar>
-              <span class="flex-grow-1 text-body-2 font-weight-medium text-truncate">
-                {{ p.jogador2_id ? (perfilDe(p.jogador2_id)?.name ?? '—') : 'Passa automaticamente' }}
-                <v-chip v-if="souEu(p.jogador2_id)" size="x-small" color="primary" class="ml-1">Tu</v-chip>
-              </span>
-              <v-icon v-if="p.status === 'TERMINADO' && p.vencedor_id === p.jogador2_id" color="success">mdi-trophy</v-icon>
+              <!-- Jogador 2 (vermelho) -->
+              <div
+                class="lado pa-2 rounded-lg"
+                :class="{ 'lado--winner': p.status === 'TERMINADO' && p.vencedor_id === p.jogador2_id }"
+              >
+                <v-avatar size="48" class="ring-red mb-2">
+                  <v-img v-if="perfilDe(p.jogador2_id)?.avatar_url" :src="perfilDe(p.jogador2_id)!.avatar_url!" cover />
+                  <span v-else class="font-weight-black text-red">{{ p.jogador2_id ? inicial(perfilDe(p.jogador2_id)) : '—' }}</span>
+                </v-avatar>
+                <div class="text-body-2 font-weight-medium text-truncate w-100">
+                  {{ p.jogador2_id ? (perfilDe(p.jogador2_id)?.name ?? '—') : 'Bye' }}
+                </div>
+                <v-chip v-if="souEu(p.jogador2_id)" size="x-small" color="primary" class="mt-1">Tu</v-chip>
+                <v-icon v-if="p.status === 'TERMINADO' && p.vencedor_id === p.jogador2_id" color="success" size="18" class="mt-1">mdi-trophy</v-icon>
+              </div>
             </div>
 
             <!-- Ação -->
@@ -87,6 +96,14 @@ function souEu(id: string | null) {
                 Jogar
               </v-btn>
               <v-btn
+                v-else-if="p.status === 'A_JOGAR' && isAdmin"
+                color="secondary" variant="tonal" block rounded="lg"
+                prepend-icon="mdi-gamepad-variant"
+                :to="`/torneio/${torneioId}/partida/${p.id}`"
+              >
+                Controlar
+              </v-btn>
+              <v-btn
                 v-else-if="p.status === 'A_JOGAR'"
                 variant="tonal" block rounded="lg"
                 prepend-icon="mdi-eye-outline"
@@ -97,6 +114,21 @@ function souEu(id: string | null) {
               <div v-else class="text-center text-caption text-success">
                 <v-icon size="14" start>mdi-check-circle</v-icon>Terminada
               </div>
+
+              <!-- Apresentar no projetor (admin) -->
+              <!-- Bloqueado para outras partidas enquanto há uma no palco a decorrer -->
+              <v-btn
+                v-if="isAdmin && p.status === 'A_JOGAR'"
+                :variant="destaqueId === p.id ? 'flat' : 'text'"
+                :color="destaqueId === p.id ? 'accent' : 'primary'"
+                size="small" block rounded="lg" class="mt-2"
+                :prepend-icon="destaqueId === p.id ? 'mdi-television-shimmer' : 'mdi-television-play'"
+                :disabled="bloquearTroca && destaqueId !== p.id"
+                :title="bloquearTroca && destaqueId !== p.id ? 'Termina a partida em palco primeiro' : ''"
+                @click="emit('destacar', p.id)"
+              >
+                {{ destaqueId === p.id ? 'No projetor' : 'Apresentar' }}
+              </v-btn>
             </div>
           </v-card-text>
         </v-card>
@@ -113,8 +145,26 @@ function souEu(id: string | null) {
 .match-card--mine { border-color: rgba(0,229,255,0.35); }
 .match-card--done { opacity: 0.85; }
 
-.player-row { transition: background 0.2s; }
-.player-row--winner { background: rgba(0,230,118,0.1); }
+.lado {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  transition: background 0.2s;
+}
+.lado--winner { background: rgba(0,230,118,0.12); }
+
+.vs-sep {
+  align-self: center;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  color: rgba(255,255,255,0.45);
+  padding: 0 8px;
+  flex-shrink: 0;
+}
 
 .ring-blue { outline: 2px solid #00B0FF; outline-offset: 2px; background: rgba(0,176,255,0.15); }
 .ring-red  { outline: 2px solid #FF1744; outline-offset: 2px; background: rgba(255,23,68,0.15); }

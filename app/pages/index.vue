@@ -1,12 +1,38 @@
 <script setup lang="ts">
 import type { TorneioCard } from '~/composables/useTorneios'
-import type { StatusTorneio, NumeroRonda } from '~/types/torneio'
+import type { StatusTorneio, NumeroRonda, JogoTipo } from '~/types/torneio'
+import { JOGOS_CATALOGO, JOGOS_RONDA_DEFAULT } from '~/types/torneio'
 
 definePageMeta({ middleware: 'auth' })
 
+// Jogo configurado para a ronda atual de um torneio
+function jogoDoTorneio(t: TorneioCard) {
+  const cfg = (t.jogos_ronda as any) ?? JOGOS_RONDA_DEFAULT
+  const tipo = (cfg[String(t.ronda_atual)] ?? 'PPT') as JogoTipo
+  return JOGOS_CATALOGO[tipo]
+}
+
 const { perfil, isAdmin } = useAuth()
-const { torneios, loading, carregarTorneios, inscreverMe, JOGO_POR_RONDA, NOME_RONDA } = useTorneios()
+const { torneios, loading, carregarTorneios, inscreverMe, apagarTorneio, JOGO_POR_RONDA, NOME_RONDA } = useTorneios()
 const { criarTorneio } = useLobby('')
+
+// ---- Apagar torneio (admin) ----
+const torneioApagar = ref<TorneioCard | null>(null)
+const aApagar = ref(false)
+
+async function confirmarApagar() {
+  if (!torneioApagar.value) return
+  aApagar.value = true
+  try {
+    await apagarTorneio(torneioApagar.value.id)
+    torneioApagar.value = null
+  } catch (e: any) {
+    mensagemErro.value = e.message
+    mostrarErro.value = true
+  } finally {
+    aApagar.value = false
+  }
+}
 
 // ---- Criar torneio (admin) ----
 const dialogCriar = ref(false)
@@ -57,10 +83,10 @@ const inscrevendo = ref<string | null>(null)
 const mostrarErro = ref(false)
 const mensagemErro = ref('')
 
-async function entrarNoTorneio(torneio: TorneioCard, status: 'QUER_JOGAR' | 'PLATEIA' = 'QUER_JOGAR') {
+async function entrarNoTorneio(torneio: TorneioCard, preferencia: 'JOGAR' | 'PLATEIA' = 'JOGAR') {
   inscrevendo.value = torneio.id
   try {
-    await inscreverMe(torneio.id, status)
+    await inscreverMe(torneio.id, preferencia)
   } catch (e: any) {
     mensagemErro.value = e.message
     mostrarErro.value = true
@@ -187,6 +213,19 @@ const participacaoConfig = {
                 {{ statusConfig[torneio.status].label }}
               </v-chip>
             </v-card-subtitle>
+
+            <!-- Apagar (admin) -->
+            <template #append>
+              <v-btn
+                v-if="isAdmin"
+                icon="mdi-delete-outline"
+                size="small"
+                variant="text"
+                color="error"
+                title="Apagar torneio"
+                @click="torneioApagar = torneio"
+              />
+            </template>
           </v-card-item>
 
           <v-divider />
@@ -205,10 +244,10 @@ const participacaoConfig = {
                 <div class="text-caption text-medium-emphasis">Jogo</div>
                 <div class="d-flex align-center mt-1">
                   <v-icon size="16" class="mr-1" :color="statusConfig[torneio.status].color">
-                    {{ jogoIcon[torneio.ronda_atual as NumeroRonda] }}
+                    {{ jogoDoTorneio(torneio).icon }}
                   </v-icon>
                   <span class="text-body-2 font-weight-medium">
-                    {{ JOGO_POR_RONDA[torneio.ronda_atual as NumeroRonda] }}
+                    {{ jogoDoTorneio(torneio).nome }}
                   </span>
                 </div>
               </v-col>
@@ -273,7 +312,7 @@ const participacaoConfig = {
                 prepend-icon="mdi-sword-cross"
                 class="flex-grow-1"
                 :loading="inscrevendo === torneio.id"
-                @click="entrarNoTorneio(torneio, 'QUER_JOGAR')"
+                @click="entrarNoTorneio(torneio, 'JOGAR')"
               >
                 Jogar
               </v-btn>
@@ -306,6 +345,26 @@ const participacaoConfig = {
         </v-card>
       </v-col>
     </v-row>
+
+    <!-- Dialog confirmar apagar -->
+    <v-dialog :model-value="!!torneioApagar" max-width="400" @update:model-value="torneioApagar = null">
+      <v-card rounded="xl">
+        <v-card-text class="pa-6 text-center">
+          <v-icon size="56" color="error" class="mb-3">mdi-delete-alert-outline</v-icon>
+          <h3 class="text-h6 font-weight-bold mb-2">Apagar torneio?</h3>
+          <p class="text-body-2 text-medium-emphasis">
+            Vais apagar <strong class="text-white">{{ torneioApagar?.nome }}</strong> e tudo o que lhe está associado
+            (partidas, inscrições e bots). Esta ação é irreversível.
+          </p>
+        </v-card-text>
+        <v-card-actions class="px-6 pb-6 pt-0 gap-3">
+          <v-btn variant="text" block :disabled="aApagar" @click="torneioApagar = null">Cancelar</v-btn>
+          <v-btn color="error" block :loading="aApagar" prepend-icon="mdi-delete" @click="confirmarApagar">
+            Apagar
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
 
     <!-- Snackbar de erro — v-model usa boolean separado, não a string -->
     <v-snackbar v-model="mostrarErro" color="error" timeout="4000">

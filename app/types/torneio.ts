@@ -9,6 +9,7 @@ export interface Utilizador {
   name: string
   admin: boolean
   avatar_url: string | null
+  is_bot?: boolean
   created_at?: string
 }
 
@@ -20,6 +21,9 @@ export interface Torneio {
   ativo: boolean
   criado_por: string
   vencedor_id: string | null
+  partida_destaque_id?: string | null
+  max_jogadores?: number
+  jogos_ronda?: Record<string, JogoTipo>
   created_at?: string
 }
 
@@ -32,6 +36,22 @@ export interface TorneioParticipante {
   // Joins opcionais
   utilizador?: Utilizador
   torneio?: Torneio
+}
+
+// ---- Catálogo de jogos ----
+
+export type JogoTipo = 'PPT' | 'GALO' | 'QUATRO' | 'NAVAL'
+
+export const JOGOS_CATALOGO: Record<JogoTipo, { nome: string; icon: string; disponivel: boolean }> = {
+  PPT:    { nome: 'Pedra, Papel, Tesoura', icon: 'mdi-hand-back-left', disponivel: true },
+  GALO:   { nome: 'Jogo do Galo',          icon: 'mdi-grid',          disponivel: false },
+  QUATRO: { nome: 'Quatro em Linha',       icon: 'mdi-dots-grid',     disponivel: false },
+  NAVAL:  { nome: 'Batalha Naval',         icon: 'mdi-ship-wheel',    disponivel: false },
+}
+
+// Mapeamento por defeito (clássico) de ronda → jogo
+export const JOGOS_RONDA_DEFAULT: Record<string, JogoTipo> = {
+  '1': 'PPT', '2': 'GALO', '3': 'QUATRO', '4': 'NAVAL',
 }
 
 // ---- Mapas auxiliares do motor de jogo ----

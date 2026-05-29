@@ -49,15 +49,13 @@ async function submeter() {
 </script>
 
 <template>
-  <v-container class="fill-height" fluid>
-    <v-row align="center" justify="center">
+  <v-container fluid class="pt-16">
+    <v-row justify="center">
       <v-col cols="12" sm="8" md="4">
 
         <!-- Cabeçalho -->
-        <div v-motion-fade class="text-center mb-8">
-          <h1 class="text-h3 font-weight-black text-primary">OFFICE</h1>
-          <h1 class="text-h3 font-weight-black text-secondary">SHOWDOWN</h1>
-          <p class="text-body-2 text-medium-emphasis mt-1">Criar conta</p>
+        <div v-motion-fade class="mb-8">
+          <LogoShowdown subtitulo="Criar conta" />
         </div>
 
         <!-- Card de registo -->

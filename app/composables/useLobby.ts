@@ -1,6 +1,6 @@
-import type { Torneio, StatusInscricao, NumeroRonda } from '~/types/torneio'
+import type { Torneio, StatusInscricao, NumeroRonda, JogoTipo } from '~/types/torneio'
 import type { Utilizador } from '~/types/torneio'
-import { JOGO_POR_RONDA, NOME_RONDA } from '~/types/torneio'
+import { NOME_RONDA, JOGOS_CATALOGO, JOGOS_RONDA_DEFAULT } from '~/types/torneio'
 import type { Database } from '~/types/database.types'
 
 export interface ParticipanteLobby {
@@ -9,6 +9,7 @@ export interface ParticipanteLobby {
   utilizador_id: string
   moedas: number
   status_inscricao: StatusInscricao
+  preferencia: 'JOGAR' | 'PLATEIA'
   utilizador: Utilizador
 }
 
@@ -22,6 +23,7 @@ export interface Partida {
   vencedor_id: string | null
   estado: Record<string, any>
   status: 'A_JOGAR' | 'TERMINADO'
+  revelar_ate?: string | null
 }
 
 // Estado inicial de uma partida de Pedra-Papel-Tesoura (à melhor de 3)
@@ -58,12 +60,24 @@ export const useLobby = (torneioId: string) => {
     participantes.value.find(p => p.utilizador_id === perfil.value?.id) ?? null
   )
 
+  const maxJogadores = computed(() => torneio.value?.max_jogadores ?? 16)
+  const confirmadosCheios = computed(() => confirmados.value.length >= maxJogadores.value)
+
   const podeIniciar = computed(() =>
-    confirmados.value.length >= 2 && torneio.value?.status === 'LOBBY'
+    confirmados.value.length >= 2 &&
+    confirmados.value.length <= maxJogadores.value &&
+    torneio.value?.status === 'LOBBY'
   )
 
+  // Config de jogos por ronda (escolhida pelo admin)
+  const jogosRonda = computed<Record<string, JogoTipo>>(() =>
+    (torneio.value?.jogos_ronda as any) ?? JOGOS_RONDA_DEFAULT
+  )
+  const jogoTipoDe = (ronda: number): JogoTipo => jogosRonda.value[String(ronda)] ?? 'PPT'
+  const jogoAtualTipo = computed(() => torneio.value ? jogoTipoDe(torneio.value.ronda_atual) : 'PPT')
+
   const jogoAtual = computed(() =>
-    torneio.value ? JOGO_POR_RONDA[torneio.value.ronda_atual as NumeroRonda] : ''
+    torneio.value ? JOGOS_CATALOGO[jogoAtualTipo.value].nome : ''
   )
   const faseAtual = computed(() =>
     torneio.value ? NOME_RONDA[torneio.value.ronda_atual as NumeroRonda] : ''
@@ -95,6 +109,29 @@ export const useLobby = (torneioId: string) => {
   // Lookup rápido de perfil por id (a partir dos participantes)
   const perfilDe = (id: string | null) =>
     id ? (participantes.value.find(p => p.utilizador_id === id)?.utilizador ?? null) : null
+
+  // Partida em destaque no projetor
+  const partidaDestaque = computed(() =>
+    partidas.value.find(p => p.id === torneio.value?.partida_destaque_id) ?? null
+  )
+
+  const destacarPartida = async (partidaId: string | null) => {
+    const { error } = await supabase
+      .from('torneios')
+      .update({ partida_destaque_id: partidaId })
+      .eq('id', torneioId)
+    if (error) throw new Error(error.message)
+    await carregarLobby()
+  }
+
+  // Escolhe uma partida aleatória da ronda (prefere as que ainda estão a jogar)
+  const destacarAleatoria = async () => {
+    const candidatas = partidasRonda.value.filter(p => p.status === 'A_JOGAR')
+    const pool = candidatas.length ? candidatas : [...partidasRonda.value]
+    if (!pool.length) return
+    const escolhida = pool[Math.floor(Math.random() * pool.length)]
+    await destacarPartida(escolhida.id)
+  }
 
   // ---- Carregar dados ----
   const carregarLobby = async () => {
@@ -164,6 +201,78 @@ export const useLobby = (torneioId: string) => {
   const moverParaPlateia = (id: string) => atualizarStatus(id, 'PLATEIA')
   const colocarPendente  = (id: string) => atualizarStatus(id, 'QUER_JOGAR')
 
+  // Update sem reload (para operações em lote)
+  const setStatus = async (id: string, status: StatusInscricao) => {
+    const { error } = await supabase
+      .from('torneio_participantes')
+      .update({ status_inscricao: status })
+      .eq('id', id)
+    if (error) throw new Error(error.message)
+  }
+
+  // Define o máximo de jogadores (potências de 2)
+  const definirMax = async (n: number) => {
+    const { error } = await supabase.from('torneios').update({ max_jogadores: n }).eq('id', torneioId)
+    if (error) throw new Error(error.message)
+    await carregarLobby()
+  }
+
+  // Número de rondas com base no máximo (potência de 2): 16→4, 8→3, 4→2, 2→1
+  const numRondas = computed(() => Math.max(1, Math.round(Math.log2(maxJogadores.value))))
+
+  // Define o jogo de uma ronda específica
+  const definirJogoRonda = async (ronda: number, tipo: JogoTipo) => {
+    const novo = { ...jogosRonda.value, [String(ronda)]: tipo }
+    const { error } = await supabase.from('torneios').update({ jogos_ronda: novo }).eq('id', torneioId)
+    if (error) throw new Error(error.message)
+    await carregarLobby()
+  }
+
+  // Define a PREFERÊNCIA de um participante (apenas uma dica; não decide o papel)
+  const definirPreferencia = async (participanteId: string, pref: 'JOGAR' | 'PLATEIA') => {
+    const { error } = await supabase
+      .from('torneio_participantes')
+      .update({ preferencia: pref })
+      .eq('id', participanteId)
+    if (error) throw new Error(error.message)
+    await carregarLobby()
+  }
+
+  // Preenche os lugares em falta — prioriza quem prefere JOGAR, depois quem prefere PLATEIA
+  const preencherAteMax = async () => {
+    const faltam = maxJogadores.value - confirmados.value.length
+    if (faltam <= 0) return
+    const pool = [...pendentes.value, ...plateia.value]
+      .sort((a, b) => (a.preferencia === 'JOGAR' ? 0 : 1) - (b.preferencia === 'JOGAR' ? 0 : 1))
+    for (const p of pool.slice(0, faltam)) await setStatus(p.id, 'JOGADOR_CONFIRMADO')
+    await carregarLobby()
+  }
+
+  // Sorteia o elenco respeitando preferências:
+  // os que querem jogar têm prioridade para os `max` lugares; se faltarem, puxa dos que preferiam plateia.
+  const sortearElenco = async () => {
+    const max = maxJogadores.value
+    const querem  = participantes.value.filter(p => p.preferencia === 'JOGAR').sort(() => Math.random() - 0.5)
+    const naoQuer = participantes.value.filter(p => p.preferencia === 'PLATEIA').sort(() => Math.random() - 0.5)
+    const dentro = new Set([...querem, ...naoQuer].slice(0, max).map(p => p.id))
+    for (const p of participantes.value) {
+      const novo: StatusInscricao = dentro.has(p.id) ? 'JOGADOR_CONFIRMADO' : 'PLATEIA'
+      if (p.status_inscricao !== novo) await setStatus(p.id, novo)
+    }
+    await carregarLobby()
+  }
+
+  // Adiciona um bot em "aguardar" (o admin personifica-o para escolher jogar/plateia)
+  const adicionarBot = async (nome?: string) => {
+    const nBots = participantes.value.filter(p => p.utilizador?.is_bot).length
+    const { error } = await supabase.rpc('adicionar_bot', {
+      p_torneio_id: torneioId,
+      p_nome: nome || `Bot ${nBots + 1}`,
+    })
+    if (error) throw new Error(error.message)
+    await carregarLobby()
+  }
+
   // Cria pares para uma lista de jogadores (devolve linhas de partida)
   const gerarPartidas = (ids: string[], ronda: number) => {
     const linhas = []
@@ -195,12 +304,23 @@ export const useLobby = (torneioId: string) => {
     const { error: e1 } = await supabase.from('partidas').insert(gerarPartidas(ids, 1))
     if (e1) throw new Error(e1.message)
 
+    // Entra em ARVORE: mostra a revelação dos confrontos antes de jogar
     const { error: e2 } = await supabase
       .from('torneios')
-      .update({ status: 'JOGO', ronda_atual: 1 })
+      .update({ status: 'ARVORE', ronda_atual: 1 })
       .eq('id', torneioId)
     if (e2) throw new Error(e2.message)
 
+    await carregarLobby()
+  }
+
+  // Da revelação (ARVORE) para os jogos a sério (JOGO)
+  const comecarJogos = async () => {
+    const { error } = await supabase
+      .from('torneios')
+      .update({ status: 'JOGO' })
+      .eq('id', torneioId)
+    if (error) throw new Error(error.message)
     await carregarLobby()
   }
 
@@ -226,9 +346,10 @@ export const useLobby = (torneioId: string) => {
     const { error: e1 } = await supabase.from('partidas').insert(gerarPartidas(vencedores, r + 1))
     if (e1) throw new Error(e1.message)
 
+    // Volta a ARVORE para revelar os confrontos da nova ronda
     const { error: e2 } = await supabase
       .from('torneios')
-      .update({ ronda_atual: r + 1 })
+      .update({ ronda_atual: r + 1, status: 'ARVORE' })
       .eq('id', torneioId)
     if (e2) throw new Error(e2.message)
 
@@ -263,6 +384,12 @@ export const useLobby = (torneioId: string) => {
       console.debug('[Lobby] Realtime status:', status)
     })
 
+  // Rede de segurança: recarrega ao voltar/focar a aba (abas em background perdem eventos de realtime)
+  if (import.meta.client) {
+    useEventListener(window, 'focus', () => carregarLobby())
+    useEventListener(document, 'visibilitychange', () => { if (!document.hidden) carregarLobby() })
+  }
+
   onUnmounted(() => supabase.removeChannel(canal))
 
   return {
@@ -274,19 +401,35 @@ export const useLobby = (torneioId: string) => {
     plateia,
     minhaParticipacao,
     podeIniciar,
+    maxJogadores,
+    confirmadosCheios,
     jogoAtual,
+    jogoAtualTipo,
+    jogosRonda,
+    jogoTipoDe,
+    numRondas,
     faseAtual,
     rondaAtual,
     partidasRonda,
     minhaPartida,
     rondaTerminada,
     perfilDe,
+    partidaDestaque,
+    destacarPartida,
+    destacarAleatoria,
     loading: readonly(loading),
     carregarLobby,
     confirmarJogador,
     moverParaPlateia,
     colocarPendente,
+    adicionarBot,
+    definirMax,
+    definirJogoRonda,
+    definirPreferencia,
+    preencherAteMax,
+    sortearElenco,
     iniciarTorneio,
+    comecarJogos,
     avancarRonda,
     criarTorneio,
   }

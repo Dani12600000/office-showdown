@@ -28,12 +28,11 @@ async function submeter() {
 </script>
 
 <template>
-  <v-container class="fill-height" fluid>
-    <v-row align="center" justify="center">
+  <v-container fluid class="pt-16">
+    <v-row justify="center">
       <v-col cols="12" sm="8" md="4">
-        <div v-motion-fade class="text-center mb-8">
-          <h1 class="text-h3 font-weight-black text-primary">OFFICE</h1>
-          <h1 class="text-h3 font-weight-black text-secondary">SHOWDOWN</h1>
+        <div v-motion-fade class="mb-8">
+          <LogoShowdown />
         </div>
 
         <v-card v-motion-slide-visible-bottom elevation="8">

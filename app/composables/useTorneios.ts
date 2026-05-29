@@ -48,17 +48,25 @@ export const useTorneios = () => {
 
   const inscreverMe = async (
     torneioId: string,
-    status: StatusInscricao = 'QUER_JOGAR',
+    preferencia: 'JOGAR' | 'PLATEIA' = 'JOGAR',
   ) => {
     if (!perfil.value) return
+    // Entra sempre em "aguardar"; a preferência é só uma dica para o sorteio/admin decidir.
     const { error } = await supabase
       .from('torneio_participantes')
       .insert({
         torneio_id: torneioId,
         utilizador_id: perfil.value.id,
-        status_inscricao: status,
+        status_inscricao: 'QUER_JOGAR',
+        preferencia,
         moedas: 100,
-      })
+      } as any)
+    if (error) throw new Error(error.message)
+    await carregarTorneios()
+  }
+
+  const apagarTorneio = async (torneioId: string) => {
+    const { error } = await supabase.rpc('apagar_torneio', { p_torneio_id: torneioId } as any)
     if (error) throw new Error(error.message)
     await carregarTorneios()
   }
@@ -79,6 +87,7 @@ export const useTorneios = () => {
     loading: readonly(loading),
     carregarTorneios,
     inscreverMe,
+    apagarTorneio,
     JOGO_POR_RONDA,
     NOME_RONDA,
   }

@@ -145,7 +145,12 @@ export interface Database {
         Args: {
           p_partida_id: string
           p_escolha: string
+          p_jogador_id?: string | null
         }
+        Returns: unknown
+      }
+      adicionar_bot: {
+        Args: { p_torneio_id: string; p_nome: string }
         Returns: unknown
       }
     }
