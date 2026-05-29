@@ -6,6 +6,10 @@ definePageMeta({ layout: 'projetor', middleware: 'auth' })
 const route = useRoute()
 const torneioId = route.params.id as string
 
+// URL para o QR — leva ao registo/entrada (origem do site)
+const url = useRequestURL()
+const urlEntrada = computed(() => `${url.origin}/signup`)
+
 const {
   torneio, loading,
   confirmados, partidasRonda, perfilDe, partidaDestaque,
@@ -117,20 +121,36 @@ onUnmounted(() => { if (timer) clearInterval(timer) })
     </div>
 
     <!-- ===== LOBBY ===== -->
-    <div v-else-if="emLobby" class="text-center py-8">
-      <v-chip size="large" color="success" class="mb-8">
-        <v-icon start>mdi-door-open</v-icon>Inscrições abertas — à espera do início
-      </v-chip>
-      <div class="jogadores-lobby">
-        <div v-for="c in confirmados" :key="c.id" class="text-center">
-          <v-avatar size="96" color="primary" class="player-avatar mb-2">
-            <v-img v-if="c.utilizador?.avatar_url" :src="c.utilizador.avatar_url" cover />
-            <span v-else class="text-h4 font-weight-black text-surface">{{ c.utilizador?.name?.charAt(0).toUpperCase() }}</span>
-          </v-avatar>
-          <div class="text-h6 font-weight-bold">{{ c.utilizador?.name }}</div>
-        </div>
-        <div v-if="!confirmados.length" class="text-h5 text-medium-emphasis py-8">Ainda sem jogadores confirmados…</div>
+    <div v-else-if="emLobby" class="lobby-grid">
+
+      <!-- Painel do QR (entrar) -->
+      <div class="qr-painel text-center">
+        <p class="text-overline text-medium-emphasis mb-2" style="font-size:1rem !important">Entra no jogo</p>
+        <QrCode :value="urlEntrada" :size="300" class="mx-auto" />
+        <p class="text-h5 font-weight-bold mt-5">
+          <v-icon color="primary" class="mr-1">mdi-cellphone</v-icon>
+          Aponta a câmara do telemóvel
+        </p>
+        <p class="text-body-1 text-medium-emphasis mt-1">Regista-te e escolhe se queres jogar ou ficar na plateia.</p>
       </div>
+
+      <!-- Jogadores já dentro -->
+      <div class="jogadores-painel">
+        <v-chip size="large" color="success" class="mb-6">
+          <v-icon start>mdi-door-open</v-icon>Inscrições abertas
+        </v-chip>
+        <div class="jogadores-lobby">
+          <div v-for="c in confirmados" :key="c.id" class="text-center">
+            <v-avatar size="84" color="primary" class="player-avatar mb-2">
+              <v-img v-if="c.utilizador?.avatar_url" :src="c.utilizador.avatar_url" cover />
+              <span v-else class="text-h5 font-weight-black text-surface">{{ c.utilizador?.name?.charAt(0).toUpperCase() }}</span>
+            </v-avatar>
+            <div class="text-subtitle-1 font-weight-bold">{{ c.utilizador?.name }}</div>
+          </div>
+          <div v-if="!confirmados.length" class="text-h6 text-medium-emphasis py-8">À espera dos primeiros jogadores…</div>
+        </div>
+      </div>
+
     </div>
 
     <!-- ===== ARVORE: REVELAÇÃO DOS CONFRONTOS ===== -->
@@ -238,12 +258,35 @@ onUnmounted(() => { if (timer) clearInterval(timer) })
 }
 .player-avatar { outline: 3px solid rgba(0,229,255,0.5); outline-offset: 3px; }
 
+.lobby-grid {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 64px;
+  align-items: center;
+  padding: 2vh 2vw;
+}
+@media (max-width: 960px) {
+  .lobby-grid { grid-template-columns: 1fr; gap: 40px; }
+}
+
+.qr-painel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.jogadores-painel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
 .jogadores-lobby {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 40px 36px;
-  max-width: 1400px;
+  gap: 32px 28px;
+  max-width: 900px;
   margin: 0 auto;
 }
 
