@@ -787,7 +787,10 @@ begin
     return;
   end if;
 
-  v_e := jsonb_set(v_e, '{vez}', to_jsonb(v_opp));
+  -- Acerto/afundou → joga outra vez; água → passa a vez
+  if v_resultado = 'agua' then
+    v_e := jsonb_set(v_e, '{vez}', to_jsonb(v_opp));
+  end if;
   update public.partidas set estado = v_e where id = p_partida_id;
 end; $$;
 grant execute on function public.jogar_naval(uuid, int, uuid) to authenticated;

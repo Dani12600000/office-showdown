@@ -114,7 +114,7 @@ const textoUltimo = computed(() => {
       <!-- Frota do Jogador 1 -->
       <div class="lado" :class="{ 'lado--lose': vitoriaVisivel && dest.vencedor_id !== j1?.id }">
         <div class="cabeca">
-          <v-avatar size="84" class="ring-blue" :class="{ 'glow-on': vez === 2 && !destTerminada }">
+          <v-avatar size="84" class="ring-blue" :class="{ 'glow-on': vez === 1 && !destTerminada }">
             <v-img v-if="j1?.avatar_url" :src="j1.avatar_url" cover />
             <span v-else class="text-blue font-weight-black" style="font-size:2rem">{{ inicial(j1) }}</span>
           </v-avatar>
@@ -148,7 +148,7 @@ const textoUltimo = computed(() => {
       <!-- Frota do Jogador 2 -->
       <div class="lado" :class="{ 'lado--lose': vitoriaVisivel && dest.vencedor_id !== j2?.id }">
         <div class="cabeca">
-          <v-avatar size="84" class="ring-red" :class="{ 'glow-on': vez === 1 && !destTerminada }">
+          <v-avatar size="84" class="ring-red" :class="{ 'glow-on': vez === 2 && !destTerminada }">
             <v-img v-if="j2?.avatar_url" :src="j2.avatar_url" cover />
             <span v-else class="text-red font-weight-black" style="font-size:2rem">{{ inicial(j2) }}</span>
           </v-avatar>
