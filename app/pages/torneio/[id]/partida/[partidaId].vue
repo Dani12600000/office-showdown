@@ -72,8 +72,9 @@ if (comoId.value) {
 
     <!-- Router de jogo -->
     <Suspense v-else>
-      <JogoPPT  v-if="jogoTipo === 'PPT'"  :partida-id="partidaId" :como-id="comoId" />
-      <JogoGalo v-else-if="jogoTipo === 'GALO'" :partida-id="partidaId" :como-id="comoId" />
+      <JogoPPT    v-if="jogoTipo === 'PPT'"       :partida-id="partidaId" :como-id="comoId" />
+      <JogoGalo   v-else-if="jogoTipo === 'GALO'"   :partida-id="partidaId" :como-id="comoId" />
+      <JogoQuatro v-else-if="jogoTipo === 'QUATRO'" :partida-id="partidaId" :como-id="comoId" />
       <template #fallback>
         <div class="d-flex justify-center align-center" style="min-height:40vh">
           <v-progress-circular indeterminate color="primary" size="56" />

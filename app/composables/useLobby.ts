@@ -45,11 +45,21 @@ export const estadoInicialGalo = () => ({
   linha_vencedora: null as number[] | null,
 })
 
+// Estado inicial de uma partida de Quatro em Linha (7×6 = 42 casas)
+export const estadoInicialQuatro = () => ({
+  tabuleiro: Array(42).fill(null) as (1 | 2 | null)[],
+  vez: 1 as 1 | 2,
+  comeca: 1 as 1 | 2,
+  empates: 0,
+  linha_vencedora: null as number[] | null,
+})
+
 // Estado inicial por tipo de jogo
 export const estadoInicialDe = (tipo: JogoTipo) => {
   switch (tipo) {
-    case 'GALO': return estadoInicialGalo()
-    default:     return estadoInicialPPT()
+    case 'GALO':   return estadoInicialGalo()
+    case 'QUATRO': return estadoInicialQuatro()
+    default:       return estadoInicialPPT()
   }
 }
 

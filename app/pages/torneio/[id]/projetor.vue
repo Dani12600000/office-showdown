@@ -173,8 +173,9 @@ onUnmounted(() => { if (timer) clearInterval(timer) })
     <!-- ===== A JOGAR: PARTIDA EM DESTAQUE ===== -->
     <template v-else-if="emJogo">
       <div v-if="dest">
-        <JogoPPTProjetor  v-if="jogoDestTipo === 'PPT'"  :partida="dest" :jogador1="j1" :jogador2="j2" />
-        <JogoGaloProjetor v-else-if="jogoDestTipo === 'GALO'" :partida="dest" :jogador1="j1" :jogador2="j2" />
+        <JogoPPTProjetor    v-if="jogoDestTipo === 'PPT'"       :partida="dest" :jogador1="j1" :jogador2="j2" />
+        <JogoGaloProjetor   v-else-if="jogoDestTipo === 'GALO'"   :partida="dest" :jogador1="j1" :jogador2="j2" />
+        <JogoQuatroProjetor v-else-if="jogoDestTipo === 'QUATRO'" :partida="dest" :jogador1="j1" :jogador2="j2" />
         <div v-else class="text-center py-12">
           <v-icon size="80" color="surface-variant" class="mb-4">mdi-hammer-wrench</v-icon>
           <h2 class="text-h4 font-weight-bold">Este jogo ainda está em construção</h2>

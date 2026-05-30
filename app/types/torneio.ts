@@ -45,7 +45,7 @@ export type JogoTipo = 'PPT' | 'GALO' | 'QUATRO' | 'NAVAL'
 export const JOGOS_CATALOGO: Record<JogoTipo, { nome: string; icon: string; disponivel: boolean }> = {
   PPT:    { nome: 'Pedra, Papel, Tesoura', icon: 'mdi-hand-back-left', disponivel: true },
   GALO:   { nome: 'Jogo do Galo',          icon: 'mdi-grid',          disponivel: true  },
-  QUATRO: { nome: 'Quatro em Linha',       icon: 'mdi-dots-grid',     disponivel: false },
+  QUATRO: { nome: 'Quatro em Linha',       icon: 'mdi-dots-grid',     disponivel: true  },
   NAVAL:  { nome: 'Batalha Naval',         icon: 'mdi-ship-wheel',    disponivel: false },
 }
 
