@@ -7,6 +7,18 @@ const { perfil, uploadAvatar, atualizarPerfil } = useAuth()
 const inputFicheiro = ref<HTMLInputElement | null>(null)
 const uploadEmCurso = ref(false)
 const erroUpload = ref('')
+const imagemFalhou = ref(false)
+
+// Inicial a mostrar quando não há imagem
+const inicial = computed(() => {
+  const nome = perfil.value?.name?.trim() || perfil.value?.username?.trim() || ''
+  return nome.charAt(0).toUpperCase() || '?'
+})
+// Mostra a imagem se: existe URL E não falhou a carregar
+const temAvatar = computed(() => !!perfil.value?.avatar_url && !imagemFalhou.value)
+
+// Reset do erro quando o url muda (novo upload)
+watch(() => perfil.value?.avatar_url, () => { imagemFalhou.value = false })
 
 function abrirSeletor() {
   inputFicheiro.value?.click()
@@ -65,10 +77,13 @@ async function guardarNome() {
             <div class="avatar-wrapper" @click="abrirSeletor">
               <!-- Avatar grande -->
               <v-avatar size="120" color="primary" class="avatar-principal">
-                <v-img v-if="perfil?.avatar_url" :src="perfil.avatar_url" cover />
-                <span v-else class="text-h3 font-weight-black text-surface">
-                  {{ perfil?.name?.charAt(0).toUpperCase() }}
-                </span>
+                <v-img
+                  v-if="temAvatar"
+                  :src="perfil!.avatar_url!"
+                  cover
+                  @error="imagemFalhou = true"
+                />
+                <span v-else class="avatar-inicial">{{ inicial }}</span>
               </v-avatar>
 
               <!-- Overlay de editar -->
@@ -176,6 +191,16 @@ async function guardarNome() {
 .avatar-principal {
   display: block;
   transition: filter 0.2s;
+}
+
+/* Inicial bem grande, escura sobre o fundo ciano do v-avatar */
+.avatar-inicial {
+  font-size: 3.5rem;
+  font-weight: 900;
+  line-height: 1;
+  color: #0D0D1A;
+  letter-spacing: -0.02em;
+  user-select: none;
 }
 
 .avatar-wrapper:hover .avatar-principal {
