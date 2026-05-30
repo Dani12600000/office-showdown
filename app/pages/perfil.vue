@@ -193,14 +193,23 @@ async function guardarNome() {
   transition: filter 0.2s;
 }
 
-/* Inicial bem grande, escura sobre o fundo ciano do v-avatar */
+/* Inicial bem grande, escura sobre o fundo ciano do v-avatar.
+   Usa flex full-size para garantir centragem perfeita (a v-avatar
+   por si só centra o nó, mas o glyph fica visualmente desviado para cima). */
 .avatar-inicial {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
   font-size: 3.5rem;
   font-weight: 900;
   line-height: 1;
   color: #0D0D1A;
   letter-spacing: -0.02em;
   user-select: none;
+  /* compensação ótica: descer ligeiramente para o glyph parecer centrado */
+  padding-top: 0.08em;
 }
 
 .avatar-wrapper:hover .avatar-principal {
