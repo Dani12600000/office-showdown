@@ -14,6 +14,7 @@ const {
   torneio, loading,
   participantes, partidasRonda, perfilDe, partidaDestaque,
   faseAtual, jogoAtual, jogoTipoDe,
+  apostasAbertas, poteJog1, poteJog2, nApostadores1, nApostadores2,
   carregarLobby,
 } = useLobby(torneioId)
 
@@ -173,14 +174,24 @@ onUnmounted(() => { if (timer) clearInterval(timer) })
     <!-- ===== A JOGAR: PARTIDA EM DESTAQUE ===== -->
     <template v-else-if="emJogo">
       <div v-if="dest">
-        <JogoPPTProjetor    v-if="jogoDestTipo === 'PPT'"       :partida="dest" :jogador1="j1" :jogador2="j2" />
-        <JogoGaloProjetor   v-else-if="jogoDestTipo === 'GALO'"   :partida="dest" :jogador1="j1" :jogador2="j2" />
-        <JogoQuatroProjetor v-else-if="jogoDestTipo === 'QUATRO'" :partida="dest" :jogador1="j1" :jogador2="j2" />
-        <JogoNavalProjetor  v-else-if="jogoDestTipo === 'NAVAL'"  :partida="dest" :jogador1="j1" :jogador2="j2" />
-        <div v-else class="text-center py-12">
-          <v-icon size="80" color="surface-variant" class="mb-4">mdi-hammer-wrench</v-icon>
-          <h2 class="text-h4 font-weight-bold">Este jogo ainda está em construção</h2>
-        </div>
+        <!-- Apostas a decorrer → ecrã de apostas -->
+        <ApostasProjetor
+          v-if="apostasAbertas"
+          :j1="j1" :j2="j2"
+          :pote1="poteJog1" :pote2="poteJog2"
+          :n1="nApostadores1" :n2="nApostadores2"
+        />
+        <!-- senão, o jogo -->
+        <template v-else>
+          <JogoPPTProjetor    v-if="jogoDestTipo === 'PPT'"       :partida="dest" :jogador1="j1" :jogador2="j2" />
+          <JogoGaloProjetor   v-else-if="jogoDestTipo === 'GALO'"   :partida="dest" :jogador1="j1" :jogador2="j2" />
+          <JogoQuatroProjetor v-else-if="jogoDestTipo === 'QUATRO'" :partida="dest" :jogador1="j1" :jogador2="j2" />
+          <JogoNavalProjetor  v-else-if="jogoDestTipo === 'NAVAL'"  :partida="dest" :jogador1="j1" :jogador2="j2" />
+          <div v-else class="text-center py-12">
+            <v-icon size="80" color="surface-variant" class="mb-4">mdi-hammer-wrench</v-icon>
+            <h2 class="text-h4 font-weight-bold">Este jogo ainda está em construção</h2>
+          </div>
+        </template>
       </div>
 
       <div v-else class="standby">

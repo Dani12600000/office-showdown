@@ -12,11 +12,11 @@ const {
   escolha1, escolha2,
   pontos1, pontos2, subRonda,
   ultimaJogada, terminada, vencedor, venci, perdi,
-  emDestaque, revelando, vitoriaVisivel,
+  emDestaque, apostasAbertas, podeJogar, revelando, vitoriaVisivel,
   carregar, jogar,
 } = usePartida(props.partidaId, comoRef)
 
-const mostrarControlos = computed(() => emDestaque.value)
+const mostrarControlos = computed(() => podeJogar.value)
 
 await carregar()
 
@@ -148,10 +148,12 @@ const torneioId = useRoute().params.id as string
       </v-expand-transition>
 
       <div v-if="!mostrarControlos" class="text-center py-10">
-        <v-icon size="48" color="surface-variant" class="mb-3">mdi-television-off</v-icon>
-        <h3 class="text-h6 font-weight-bold mb-1">Aguarda a tua vez no palco</h3>
+        <v-icon size="48" color="surface-variant" class="mb-3">{{ apostasAbertas ? 'mdi-cash-multiple' : 'mdi-television-off' }}</v-icon>
+        <h3 class="text-h6 font-weight-bold mb-1">{{ apostasAbertas ? 'Apostas a decorrer…' : 'Aguarda a tua vez no palco' }}</h3>
         <p class="text-body-2 text-medium-emphasis">
-          Os controlos só ficam disponíveis quando esta partida estiver a ser apresentada no projetor.
+          {{ apostasAbertas
+            ? 'A plateia está a apostar. O jogo começa quando o apresentador fechar as apostas.'
+            : 'Os controlos só ficam disponíveis quando esta partida estiver a ser apresentada no projetor.' }}
         </p>
       </div>
 

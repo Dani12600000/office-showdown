@@ -14,6 +14,7 @@ const {
   jogosRonda, jogoTipoDe, numRondas,
   partidasRonda, minhaPartida, rondaTerminada, perfilDe,
   partidaDestaque, destacarPartida, destacarAleatoria,
+  apostasAbertas, poteJog1, poteJog2, nApostadores1, nApostadores2, minhaAposta, apostar, fecharApostas,
   carregarLobby,
   confirmarJogador, moverParaPlateia, colocarPendente, adicionarBot,
   definirMax, definirJogoRonda, definirPreferencia, definirMinhaPreferencia, preencherAteMax, sortearElenco,
@@ -190,6 +191,23 @@ const perdi = computed(() =>
 const souPlateia = computed(() =>
   minhaParticipacao.value?.status_inscricao === 'PLATEIA'
 )
+
+// ---- Apostas (plateia) ----
+const destJ1 = computed(() => perfilDe(partidaDestaque.value?.jogador1_id ?? null))
+const destJ2 = computed(() => perfilDe(partidaDestaque.value?.jogador2_id ?? null))
+
+async function fazerAposta(alvoId: string, montante: number) {
+  try { await apostar(alvoId, montante) }
+  catch (e: any) { mensagemErro.value = e.message; mostrarErro.value = true }
+}
+
+const aFechar = ref(false)
+async function fazerFecharApostas() {
+  aFechar.value = true
+  try { await fecharApostas() }
+  catch (e: any) { mensagemErro.value = e.message; mostrarErro.value = true }
+  finally { aFechar.value = false }
+}
 const fuiEliminadoAntes = computed(() =>
   minhaParticipacao.value?.status_inscricao === 'JOGADOR_CONFIRMADO' &&
   !minhaPartidaDestaRonda.value
@@ -520,6 +538,15 @@ async function confirmarIniciar() {
         <!-- ===== CONTROLOS (JOGO, admin) ===== -->
         <div v-else-if="emJogo && isAdmin" class="d-flex align-center justify-end flex-wrap gap-2 mb-2">
           <v-btn
+            v-if="apostasAbertas && partidaDestaque"
+            color="accent" rounded="lg"
+            prepend-icon="mdi-cash-lock"
+            :loading="aFechar"
+            @click="fazerFecharApostas"
+          >
+            Fechar apostas e começar
+          </v-btn>
+          <v-btn
             variant="tonal" color="primary" rounded="lg"
             prepend-icon="mdi-shuffle-variant"
             :disabled="destaqueEmJogo"
@@ -571,14 +598,21 @@ async function confirmarIniciar() {
       <!-- ===== VISTA: FOCADA NO JOGADOR (não-admin, a jogar) ===== -->
       <div v-else-if="aJogar && !isAdmin && minhaParticipacao" class="py-4">
 
-        <!-- Plateia -->
-        <v-card v-if="souPlateia" rounded="xl" variant="tonal" color="primary" class="text-center">
-          <v-card-text class="pa-8">
-            <v-icon size="64" class="mb-3">mdi-eye</v-icon>
-            <h2 class="text-h5 font-weight-black mb-1">Estás na plateia</h2>
-            <p class="text-body-2 text-medium-emphasis">Segue o evento no projetor com o resto do público.</p>
-          </v-card-text>
-        </v-card>
+        <!-- Plateia → painel de apostas -->
+        <PainelAposta
+          v-if="souPlateia"
+          :partida="partidaDestaque"
+          :jogador1="destJ1"
+          :jogador2="destJ2"
+          :apostas-abertas="apostasAbertas"
+          :minha-aposta="minhaAposta"
+          :saldo="minhaParticipacao?.moedas ?? 0"
+          :pote1="poteJog1"
+          :pote2="poteJog2"
+          :n1="nApostadores1"
+          :n2="nApostadores2"
+          @apostar="fazerAposta"
+        />
 
         <!-- Tenho partida nesta ronda -->
         <template v-else-if="minhaPartidaDestaRonda">

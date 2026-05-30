@@ -11,11 +11,11 @@ const {
   tabuleiro, vez, linhaVencedora, empates,
   minhaVez, jogadorDaVez, idDaJogada, colunaCheia,
   terminada, vencedor, venci, perdi,
-  emDestaque, revelando, vitoriaVisivel,
+  emDestaque, apostasAbertas, podeJogar, revelando, vitoriaVisivel,
   carregar, jogar,
 } = usePartidaQuatro(props.partidaId, comoRef)
 
-const mostrarControlos = computed(() => emDestaque.value)
+const mostrarControlos = computed(() => podeJogar.value)
 
 await carregar()
 
@@ -121,10 +121,12 @@ const torneioId = useRoute().params.id as string
     <template v-else>
       <!-- À espera de estar em destaque -->
       <div v-if="!mostrarControlos && !souEspectador" class="text-center py-6 mb-2">
-        <v-icon size="48" color="surface-variant" class="mb-3">mdi-television-off</v-icon>
-        <h3 class="text-h6 font-weight-bold mb-1">Aguarda a tua vez no palco</h3>
+        <v-icon size="48" color="surface-variant" class="mb-3">{{ apostasAbertas ? 'mdi-cash-multiple' : 'mdi-television-off' }}</v-icon>
+        <h3 class="text-h6 font-weight-bold mb-1">{{ apostasAbertas ? 'Apostas a decorrer…' : 'Aguarda a tua vez no palco' }}</h3>
         <p class="text-body-2 text-medium-emphasis">
-          Vais poder jogar quando a partida estiver em destaque no projetor.
+          {{ apostasAbertas
+            ? 'A plateia está a apostar. O jogo começa quando o apresentador fechar as apostas.'
+            : 'Vais poder jogar quando a partida estiver em destaque no projetor.' }}
         </p>
       </div>
 

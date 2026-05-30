@@ -18,6 +18,7 @@ export const useCorePartida = (partidaId: string, comoId?: Ref<string | null>) =
   const jogador2 = ref<Utilizador | null>(null)
   const loading = ref(true)
   const destaqueId = ref<string | null>(null)
+  const apostasAbertas = ref(false)
   const jogoTipo = ref<JogoTipo>('PPT')
 
   const estado = computed<any>(() => partida.value?.estado ?? {})
@@ -80,6 +81,8 @@ export const useCorePartida = (partidaId: string, comoId?: Ref<string | null>) =
   const vitoriaVisivel = computed(() => terminada.value && !revelando.value)
 
   const emDestaque = computed(() => destaqueId.value === partidaId)
+  // Só se joga quando a partida está em destaque E as apostas já fecharam.
+  const podeJogar = computed(() => emDestaque.value && !apostasAbertas.value)
   const jogoNome = computed(() => JOGOS_CATALOGO[jogoTipo.value].nome)
   const jogoDisponivel = computed(() => JOGOS_CATALOGO[jogoTipo.value].disponivel)
 
@@ -100,6 +103,7 @@ export const useCorePartida = (partidaId: string, comoId?: Ref<string | null>) =
         .single()
       if (tErr) console.error('[Partida] Erro a carregar torneio:', tErr)
       destaqueId.value = (t as any)?.partida_destaque_id ?? null
+      apostasAbertas.value = !!(t as any)?.apostas_abertas
       const config = (t as any)?.jogos_ronda ?? JOGOS_RONDA_DEFAULT
       jogoTipo.value = config[String((data as Partida).ronda)] ?? 'PPT'
     }
@@ -129,7 +133,7 @@ export const useCorePartida = (partidaId: string, comoId?: Ref<string | null>) =
     j1Bot, j2Bot, controlo1, controlo2, souEspectador, controloBots,
     terminada, vencedor, perdedor, venci, perdi,
     revelando, vitoriaVisivel,
-    emDestaque, jogoTipo, jogoNome, jogoDisponivel,
+    emDestaque, apostasAbertas, podeJogar, jogoTipo, jogoNome, jogoDisponivel,
     carregar,
   }
 }

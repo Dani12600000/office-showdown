@@ -1,4 +1,4 @@
-import type { Torneio, StatusInscricao, NumeroRonda, JogoTipo } from '~/types/torneio'
+import type { Torneio, StatusInscricao, NumeroRonda, JogoTipo, Aposta } from '~/types/torneio'
 import type { Utilizador } from '~/types/torneio'
 import { NOME_RONDA, JOGOS_CATALOGO, JOGOS_RONDA_DEFAULT } from '~/types/torneio'
 import type { Database } from '~/types/database.types'
@@ -87,6 +87,7 @@ export const useLobby = (torneioId: string) => {
   const torneio = ref<Torneio | null>(null)
   const participantes = ref<ParticipanteLobby[]>([])
   const partidas = ref<Partida[]>([])
+  const apostas = ref<Aposta[]>([])
   const loading = ref(true)
 
   // Grupos derivados
@@ -160,10 +161,62 @@ export const useLobby = (torneioId: string) => {
   )
 
   const destacarPartida = async (partidaId: string | null) => {
+    // Ao apresentar uma partida, as apostas abrem automaticamente.
     const { error } = await supabase
       .from('torneios')
-      .update({ partida_destaque_id: partidaId })
+      .update({ partida_destaque_id: partidaId, apostas_abertas: !!partidaId } as any)
       .eq('id', torneioId)
+    if (error) throw new Error(error.message)
+    await carregarLobby()
+  }
+
+  // ---- Apostas ----
+  const apostasAbertas = computed(() => !!(torneio.value as any)?.apostas_abertas)
+
+  const apostasDestaque = computed(() =>
+    apostas.value.filter(a => a.partida_id === partidaDestaque.value?.id)
+  )
+  const poteJog1 = computed(() =>
+    apostasDestaque.value
+      .filter(a => a.alvo_id === partidaDestaque.value?.jogador1_id)
+      .reduce((s, a) => s + a.montante, 0)
+  )
+  const poteJog2 = computed(() =>
+    apostasDestaque.value
+      .filter(a => a.alvo_id === partidaDestaque.value?.jogador2_id)
+      .reduce((s, a) => s + a.montante, 0)
+  )
+  const poteTotal = computed(() => poteJog1.value + poteJog2.value)
+  const nApostadores1 = computed(() =>
+    apostasDestaque.value.filter(a => a.alvo_id === partidaDestaque.value?.jogador1_id).length
+  )
+  const nApostadores2 = computed(() =>
+    apostasDestaque.value.filter(a => a.alvo_id === partidaDestaque.value?.jogador2_id).length
+  )
+  // A minha aposta na partida em destaque
+  const minhaAposta = computed(() =>
+    apostasDestaque.value.find(a => a.apostador_id === perfil.value?.id) ?? null
+  )
+
+  const fecharApostas = async () => {
+    const { error } = await supabase
+      .from('torneios')
+      .update({ apostas_abertas: false } as any)
+      .eq('id', torneioId)
+    if (error) throw new Error(error.message)
+    await carregarLobby()
+  }
+
+  // p_apostador_id: opcional (admin personifica bots da plateia)
+  const apostar = async (alvoId: string, montante: number, apostadorId?: string) => {
+    const part = partidaDestaque.value
+    if (!part) throw new Error('Nenhuma partida em destaque')
+    const { error } = await (supabase as any).rpc('apostar', {
+      p_partida_id: part.id,
+      p_alvo_id: alvoId,
+      p_montante: montante,
+      p_apostador_id: apostadorId ?? null,
+    })
     if (error) throw new Error(error.message)
     await carregarLobby()
   }
@@ -189,7 +242,7 @@ export const useLobby = (torneioId: string) => {
       try {
         await supabase
           .from('torneios')
-          .update({ partida_destaque_id: null })
+          .update({ partida_destaque_id: null, apostas_abertas: false } as any)
           .eq('id', torneioId)
       } catch { /* sem permissão (não-admin) → ignora */ }
     }, delay)
@@ -223,6 +276,18 @@ export const useLobby = (torneioId: string) => {
       .select('*')
       .eq('torneio_id', torneioId)
     partidas.value = (parts ?? []) as Partida[]
+
+    // Apostas (de todas as partidas deste torneio)
+    const partIds = (parts ?? []).map(p => p.id)
+    if (partIds.length) {
+      const { data: aps } = await (supabase as any)
+        .from('apostas')
+        .select('*')
+        .in('partida_id', partIds)
+      apostas.value = (aps ?? []) as Aposta[]
+    } else {
+      apostas.value = []
+    }
 
     if (!p?.length) {
       participantes.value = []
@@ -464,6 +529,7 @@ export const useLobby = (torneioId: string) => {
     .on('postgres_changes', { event: '*', schema: 'public', table: 'torneios' }, carregarLobby)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'torneio_participantes' }, carregarLobby)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'partidas' }, carregarLobby)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'apostas' }, carregarLobby)
     .subscribe((status) => {
       console.debug('[Lobby] Realtime status:', status)
     })
@@ -504,6 +570,14 @@ export const useLobby = (torneioId: string) => {
     partidaDestaque,
     destacarPartida,
     destacarAleatoria,
+    apostas: readonly(apostas),
+    apostasAbertas,
+    apostasDestaque,
+    poteJog1, poteJog2, poteTotal,
+    nApostadores1, nApostadores2,
+    minhaAposta,
+    fecharApostas,
+    apostar,
     loading: readonly(loading),
     carregarLobby,
     confirmarJogador,

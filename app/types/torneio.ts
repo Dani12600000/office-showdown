@@ -24,6 +24,18 @@ export interface Torneio {
   partida_destaque_id?: string | null
   max_jogadores?: number
   jogos_ronda?: Record<string, JogoTipo>
+  apostas_abertas?: boolean
+  created_at?: string
+}
+
+export interface Aposta {
+  id: string
+  partida_id: string
+  apostador_id: string
+  alvo_id: string
+  montante: number
+  ganho: number
+  liquidada: boolean
   created_at?: string
 }
 
