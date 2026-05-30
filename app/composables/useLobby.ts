@@ -54,11 +54,28 @@ export const estadoInicialQuatro = () => ({
   linha_vencedora: null as number[] | null,
 })
 
+// Estado inicial de uma partida de Batalha Naval (5×5).
+// Frota de tamanhos variados [3,2,1] = 6 casas, posicionada por cada jogador.
+export const estadoInicialNaval = () => ({
+  fase: 'POSICIONAR' as 'POSICIONAR' | 'COMBATE',
+  vez: 1 as 1 | 2,
+  pronto_1: false,
+  pronto_2: false,
+  grelha_1: Array(25).fill(null) as ('agua' | 'acerto' | null)[],
+  grelha_2: Array(25).fill(null) as ('agua' | 'acerto' | null)[],
+  restantes_1: 0,
+  restantes_2: 0,
+  ultimo: null as null | { por: 1 | 2; pos: number; resultado: string; navio: number[] | null },
+  navios_1: null as number[][] | null,  // revelados só no fim
+  navios_2: null as number[][] | null,
+})
+
 // Estado inicial por tipo de jogo
 export const estadoInicialDe = (tipo: JogoTipo) => {
   switch (tipo) {
     case 'GALO':   return estadoInicialGalo()
     case 'QUATRO': return estadoInicialQuatro()
+    case 'NAVAL':  return estadoInicialNaval()
     default:       return estadoInicialPPT()
   }
 }

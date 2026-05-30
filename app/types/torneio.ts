@@ -46,7 +46,7 @@ export const JOGOS_CATALOGO: Record<JogoTipo, { nome: string; icon: string; disp
   PPT:    { nome: 'Pedra, Papel, Tesoura', icon: 'mdi-hand-back-left', disponivel: true },
   GALO:   { nome: 'Jogo do Galo',          icon: 'mdi-grid',          disponivel: true  },
   QUATRO: { nome: 'Quatro em Linha',       icon: 'mdi-dots-grid',     disponivel: true  },
-  NAVAL:  { nome: 'Batalha Naval',         icon: 'mdi-ship-wheel',    disponivel: false },
+  NAVAL:  { nome: 'Batalha Naval',         icon: 'mdi-ship-wheel',    disponivel: true  },
 }
 
 // Mapeamento por defeito (clássico) de ronda → jogo
