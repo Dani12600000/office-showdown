@@ -96,7 +96,7 @@ onUnmounted(() => { if (timer) clearInterval(timer) })
       </div>
 
       <div class="jogadores-painel">
-        <div class="d-flex gap-2 mb-6 flex-wrap justify-center">
+        <div class="d-flex ga-2 mb-5 flex-wrap justify-center flex-shrink-0">
           <v-chip size="large" color="success">
             <v-icon start>mdi-door-open</v-icon>Inscrições abertas
           </v-chip>
@@ -215,24 +215,55 @@ onUnmounted(() => { if (timer) clearInterval(timer) })
 .player-avatar--plateia { outline-color: rgb(var(--v-theme-primary)); box-shadow: 0 0 20px rgba(0,229,255,0.4); }
 .player-avatar--pending { outline-color: rgba(255,255,255,0.2); }
 
-.jogador-lobby { width: 110px; }
+.jogador-lobby { width: 104px; }
 
 .lobby-grid {
   display: grid;
   grid-template-columns: auto 1fr;
-  gap: 64px;
-  align-items: center;
-  padding: 2vh 2vw;
+  gap: 56px;
+  align-items: center;             /* QR centrado verticalmente face ao painel */
+  padding: 1vh 2vw;
+  /* altura útil do ecrã (descontando cabeçalho) — mantém tudo dentro do TV */
+  height: calc(100vh - 230px);
+  min-height: 0;
 }
 @media (max-width: 960px) {
-  .lobby-grid { grid-template-columns: 1fr; gap: 40px; }
+  .lobby-grid { grid-template-columns: 1fr; gap: 32px; height: auto; }
 }
 
-.qr-painel { display: flex; flex-direction: column; align-items: center; }
-.jogadores-painel { display: flex; flex-direction: column; align-items: center; }
+/* Coluna do QR — fica fixa no centro vertical */
+.qr-painel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Coluna dos jogadores — ocupa a altura toda; lista faz scroll interno se necessário */
+.jogadores-painel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  align-self: stretch;
+  min-height: 0;
+  height: 100%;
+  width: 100%;
+}
 .jogadores-lobby {
-  display: flex; flex-wrap: wrap; justify-content: center;
-  gap: 32px 28px; max-width: 900px; margin: 0 auto;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  overflow-y: auto;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;   /* centra cada linha, incluindo a última */
+  align-content: center;     /* centra o conjunto verticalmente na área */
+  gap: 24px 22px;
+  padding: 4px 12px;
+}
+/* scrollbar discreta */
+.jogadores-lobby::-webkit-scrollbar { width: 8px; }
+.jogadores-lobby::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.15); border-radius: 4px;
 }
 
 .standby {

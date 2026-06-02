@@ -370,7 +370,7 @@ async function confirmarIniciar() {
       <div class="mb-6">
         <h1 class="text-h3 font-weight-black mb-3">{{ torneio.nome }}</h1>
 
-        <div class="d-flex flex-wrap gap-2 mb-5">
+        <div class="d-flex flex-wrap ga-2 mb-5">
           <v-chip v-if="emLobby" color="success" size="small" label>
             <v-icon start size="14">mdi-door-open</v-icon>Lobby aberto
           </v-chip>
@@ -394,7 +394,10 @@ async function confirmarIniciar() {
             <v-card-text class="pa-0">
               <v-row no-gutters>
                 <v-col class="stat-col text-center pa-4">
-                  <div class="text-h4 font-weight-black text-success">{{ confirmados.length }}<span class="text-medium-emphasis" style="font-size:1.2rem"> / {{ maxJogadores }}</span></div>
+                  <div class="text-h4 font-weight-black text-success d-flex align-baseline justify-center">
+                    <span>{{ confirmados.length }}</span>
+                    <span class="text-caption text-medium-emphasis ml-1">/ {{ maxJogadores }}</span>
+                  </div>
                   <div class="text-caption text-medium-emphasis mt-1">Confirmados</div>
                 </v-col>
                 <v-divider vertical />
