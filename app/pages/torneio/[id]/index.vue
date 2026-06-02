@@ -468,10 +468,11 @@ async function confirmarIniciar() {
               </v-card-text>
             </v-card>
 
-            <!-- Ferramentas de elenco -->
-            <div class="d-flex align-center flex-wrap ga-2 mb-3">
+            <!-- Ferramentas de elenco — empilhadas no telemóvel, em linha no desktop -->
+            <div class="d-flex flex-column flex-sm-row ga-2 mb-3">
               <v-btn
                 variant="tonal" rounded="lg" size="small"
+                class="flex-grow-1"
                 prepend-icon="mdi-robot"
                 :loading="aAdicionarBot"
                 @click="novoBot"
@@ -480,6 +481,7 @@ async function confirmarIniciar() {
               </v-btn>
               <v-btn
                 variant="tonal" color="success" rounded="lg" size="small"
+                class="flex-grow-1"
                 prepend-icon="mdi-account-multiple-plus"
                 @click="fazerPreencher"
               >
@@ -487,6 +489,7 @@ async function confirmarIniciar() {
               </v-btn>
               <v-btn
                 variant="tonal" color="primary" rounded="lg" size="small"
+                class="flex-grow-1"
                 prepend-icon="mdi-shuffle-variant"
                 @click="fazerSortear"
               >
@@ -495,7 +498,7 @@ async function confirmarIniciar() {
             </div>
 
             <!-- Iniciar -->
-            <div class="d-flex align-center justify-space-between flex-wrap ga-3">
+            <div class="d-flex flex-column flex-sm-row align-sm-center justify-space-between ga-3">
               <v-alert
                 v-if="!podeIniciar"
                 type="info" variant="tonal" density="compact"
@@ -510,6 +513,7 @@ async function confirmarIniciar() {
               <v-spacer v-else />
               <v-btn
                 color="secondary" size="large" rounded="lg"
+                class="flex-grow-1 flex-sm-grow-0"
                 prepend-icon="mdi-play-circle"
                 :disabled="!podeIniciar"
                 @click="dialogIniciar = true"
@@ -524,12 +528,13 @@ async function confirmarIniciar() {
         </template>
 
         <!-- ===== REVELAÇÃO DOS CONFRONTOS (ARVORE, admin) ===== -->
-        <div v-else-if="naArvore && isAdmin" class="d-flex align-center justify-space-between flex-wrap ga-3 mb-2">
+        <div v-else-if="naArvore && isAdmin" class="d-flex flex-column flex-sm-row align-sm-center justify-space-between ga-3 mb-2">
           <v-alert type="info" variant="tonal" density="compact" icon="mdi-tournament" class="flex-grow-1" style="max-width:460px">
             Os confrontos estão revelados! Mostra-os no projetor e começa quando quiseres.
           </v-alert>
           <v-btn
             color="secondary" size="large" rounded="lg"
+            class="flex-grow-1 flex-sm-grow-0"
             prepend-icon="mdi-play-circle"
             :loading="aComecar"
             @click="comecar"
@@ -539,10 +544,11 @@ async function confirmarIniciar() {
         </div>
 
         <!-- ===== CONTROLOS (JOGO, admin) ===== -->
-        <div v-else-if="emJogo && isAdmin" class="d-flex align-center justify-end flex-wrap gap-2 mb-2">
+        <div v-else-if="emJogo && isAdmin" class="d-flex flex-column flex-sm-row justify-sm-end ga-2 mb-2">
           <v-btn
             v-if="apostasAbertas && partidaDestaque"
             color="accent" rounded="lg"
+            class="flex-grow-1 flex-sm-grow-0"
             prepend-icon="mdi-cash-lock"
             :loading="aFechar"
             @click="fazerFecharApostas"
@@ -551,6 +557,7 @@ async function confirmarIniciar() {
           </v-btn>
           <v-btn
             variant="tonal" color="primary" rounded="lg"
+            class="flex-grow-1 flex-sm-grow-0"
             prepend-icon="mdi-shuffle-variant"
             :disabled="destaqueEmJogo"
             :title="destaqueEmJogo ? 'Há uma partida no palco — termina-a primeiro' : ''"
@@ -560,6 +567,7 @@ async function confirmarIniciar() {
           </v-btn>
           <v-btn
             color="secondary" rounded="lg"
+            class="flex-grow-1 flex-sm-grow-0"
             prepend-icon="mdi-skip-next"
             :disabled="!rondaTerminada"
             :loading="aAvancar"
