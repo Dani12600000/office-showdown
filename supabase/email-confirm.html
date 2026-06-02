@@ -1,0 +1,91 @@
+<!--
+  OFFICE SHOWDOWN — Template de confirmação de email (Supabase)
+  Cola em: Supabase Dashboard → Authentication → Emails → "Confirm signup"
+  Mantém a variável {{ .ConfirmationURL }}.
+-->
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0;padding:0;background-color:#0D0D1A;">
+  <tr>
+    <td align="center" style="padding:40px 16px;">
+
+      <!-- Cartão -->
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;background-color:#16182A;border:1px solid rgba(255,255,255,0.08);border-radius:20px;overflow:hidden;font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+
+        <!-- Logo -->
+        <tr>
+          <td align="center" style="padding:40px 32px 8px 32px;">
+            <div style="font-size:34px;font-weight:900;letter-spacing:1px;line-height:1.05;">
+              <span style="color:#00E5FF;">OFFICE</span>
+              <span style="color:#FF1744;">SHOWDOWN</span>
+            </div>
+            <!-- Barra néon -->
+            <div style="margin:14px auto 0 auto;width:120px;height:3px;border-radius:2px;background:linear-gradient(90deg,#00E5FF,#FF1744);"></div>
+          </td>
+        </tr>
+
+        <!-- Título -->
+        <tr>
+          <td align="center" style="padding:24px 32px 0 32px;">
+            <h1 style="margin:0;color:#FFFFFF;font-size:24px;font-weight:800;">Confirma o teu email</h1>
+          </td>
+        </tr>
+
+        <!-- Texto -->
+        <tr>
+          <td align="center" style="padding:14px 32px 0 32px;">
+            <p style="margin:0;color:#A9AEC4;font-size:15px;line-height:1.6;">
+              Estás quase dentro do jogo! Clica no botão abaixo para confirmar o teu email e terminar o registo.
+            </p>
+          </td>
+        </tr>
+
+        <!-- Botão CTA -->
+        <tr>
+          <td align="center" style="padding:28px 32px 8px 32px;">
+            <table role="presentation" cellpadding="0" cellspacing="0">
+              <tr>
+                <td align="center" style="border-radius:12px;background-color:#00E5FF;box-shadow:0 0 24px rgba(0,229,255,0.45);">
+                  <a href="{{ .ConfirmationURL }}" target="_blank"
+                     style="display:inline-block;padding:15px 38px;font-size:16px;font-weight:800;color:#0D0D1A;text-decoration:none;border-radius:12px;">
+                    Confirmar email
+                  </a>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <!-- Link alternativo -->
+        <tr>
+          <td align="center" style="padding:18px 32px 0 32px;">
+            <p style="margin:0;color:#6E7390;font-size:12px;line-height:1.6;">
+              Se o botão não funcionar, copia e cola este link no navegador:
+            </p>
+            <p style="margin:6px 0 0 0;word-break:break-all;">
+              <a href="{{ .ConfirmationURL }}" target="_blank" style="color:#00E5FF;font-size:12px;text-decoration:underline;">{{ .ConfirmationURL }}</a>
+            </p>
+          </td>
+        </tr>
+
+        <!-- Divisória -->
+        <tr>
+          <td style="padding:28px 32px 0 32px;">
+            <div style="height:1px;background-color:rgba(255,255,255,0.08);"></div>
+          </td>
+        </tr>
+
+        <!-- Rodapé -->
+        <tr>
+          <td align="center" style="padding:18px 32px 36px 32px;">
+            <p style="margin:0;color:#6E7390;font-size:12px;line-height:1.6;">
+              Se não foste tu a criar esta conta, podes ignorar este email com segurança.
+            </p>
+            <p style="margin:10px 0 0 0;color:#4A4F68;font-size:11px;">
+              ⚔️ Office Showdown
+            </p>
+          </td>
+        </tr>
+
+      </table>
+    </td>
+  </tr>
+</table>
