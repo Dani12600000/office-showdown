@@ -25,7 +25,7 @@ export default defineEventHandler(async (event) => {
   const origin = getRequestURL(event).origin
 
   const { error } = await serviceClient.auth.admin.inviteUserByEmail(email.trim().toLowerCase(), {
-    redirectTo: `${origin}/aceitar-convite`,
+    redirectTo: `${origin}/auth/confirm?next=/aceitar-convite`,
   })
 
   if (error) throw createError({ statusCode: 400, message: error.message })

@@ -114,7 +114,7 @@ export const useAuth = () => {
     if (!email) throw new Error('Utilizador não encontrado.')
 
     const { error } = await supabase.auth.resetPasswordForEmail(email as string, {
-      redirectTo: `${window.location.origin}/nova-password`,
+      redirectTo: `${window.location.origin}/auth/confirm?next=/nova-password`,
     })
     if (error) throw new Error(error.message)
   }

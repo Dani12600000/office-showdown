@@ -48,8 +48,7 @@ export default defineNuxtConfig({
     types: '~/types/database.types.ts',
     clientOptions: {
       auth: {
-        detectSessionInUrl: true,
-        flowType: 'implicit',
+        flowType: 'pkce',
       },
     },
   },

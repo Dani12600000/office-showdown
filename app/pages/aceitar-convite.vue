@@ -9,31 +9,16 @@ const tokenInvalido = ref(false)
 const sessaoOk = ref(false)
 const userId = ref('')
 
-onMounted(() => {
-  // Timeout de segurança — se o Supabase não processar os tokens em 10s, o link é inválido
-  const fallback = setTimeout(() => {
-    if (!sessaoOk.value) tokenInvalido.value = true
-  }, 10000)
-
-  function handleSession(session: { user: { id: string } } | null) {
-    if (session?.user) {
-      clearTimeout(fallback)
-      userId.value = session.user.id
-      sessaoOk.value = true
-      history.replaceState(null, '', window.location.pathname)
-    }
+onMounted(async () => {
+  // Com @nuxtjs/supabase v2, a sessão é gerida server-side via cookies.
+  // O route /auth/confirm já fez a troca e o utilizador chegou aqui autenticado.
+  const { data } = await supabase.auth.getSession()
+  if (data.session?.user) {
+    userId.value = data.session.user.id
+    sessaoOk.value = true
+  } else {
+    tokenInvalido.value = true
   }
-
-  // Escuta eventos de auth — o Supabase processa os tokens do hash automaticamente
-  // com detectSessionInUrl: true e dispara SIGNED_IN
-  supabase.auth.onAuthStateChange((event, session) => {
-    if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-      handleSession(session)
-    }
-  })
-
-  // Verifica também imediatamente (pode já estar processado)
-  supabase.auth.getSession().then(({ data }) => handleSession(data.session))
 })
 
 // Formulário
