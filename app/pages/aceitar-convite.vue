@@ -10,20 +10,33 @@ const sessaoOk = ref(false)
 const userId = ref('')
 
 onMounted(async () => {
-  // Lê os tokens diretamente do hash da URL e estabelece a sessão manualmente
-  const params = new URLSearchParams(window.location.hash.substring(1))
-  const accessToken = params.get('access_token')
-  const refreshToken = params.get('refresh_token')
-
-  if (accessToken && refreshToken) {
-    const { data, error } = await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken })
-    if (!error && data.session?.user) {
-      userId.value = data.session.user.id
+  try {
+    // O plugin auth.client.ts pode já ter processado os tokens do hash —
+    // verifica a sessão existente primeiro
+    const { data: existing } = await supabase.auth.getSession()
+    if (existing.session?.user) {
+      userId.value = existing.session.user.id
       sessaoOk.value = true
-      // Limpa o hash da URL sem recarregar
       history.replaceState(null, '', window.location.pathname)
       return
     }
+
+    // Tenta estabelecer sessão manualmente a partir dos tokens do hash
+    const params = new URLSearchParams(window.location.hash.substring(1))
+    const accessToken = params.get('access_token')
+    const refreshToken = params.get('refresh_token')
+
+    if (accessToken && refreshToken) {
+      const { data, error } = await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken })
+      if (!error && data.session?.user) {
+        userId.value = data.session.user.id
+        sessaoOk.value = true
+        history.replaceState(null, '', window.location.pathname)
+        return
+      }
+    }
+  } catch (_) {
+    // Qualquer excepção → token inválido/expirado
   }
 
   tokenInvalido.value = true

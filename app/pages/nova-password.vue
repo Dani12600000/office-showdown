@@ -10,17 +10,28 @@ const tokenInvalido = ref(false)
 const sessaoOk = ref(false)
 
 onMounted(async () => {
-  const params = new URLSearchParams(window.location.hash.substring(1))
-  const accessToken = params.get('access_token')
-  const refreshToken = params.get('refresh_token')
-
-  if (accessToken && refreshToken) {
-    const { data, error } = await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken })
-    if (!error && data.session) {
+  try {
+    const { data: existing } = await supabase.auth.getSession()
+    if (existing.session) {
       sessaoOk.value = true
       history.replaceState(null, '', window.location.pathname)
       return
     }
+
+    const params = new URLSearchParams(window.location.hash.substring(1))
+    const accessToken = params.get('access_token')
+    const refreshToken = params.get('refresh_token')
+
+    if (accessToken && refreshToken) {
+      const { data, error } = await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken })
+      if (!error && data.session) {
+        sessaoOk.value = true
+        history.replaceState(null, '', window.location.pathname)
+        return
+      }
+    }
+  } catch (_) {
+    // Qualquer excepção → token inválido/expirado
   }
 
   tokenInvalido.value = true
