@@ -14,16 +14,18 @@ export default defineEventHandler(async (event) => {
 
   if (perfilError || !perfil?.admin) throw createError({ statusCode: 403, message: 'Acesso negado.' })
 
-  const { email } = await readBody<{ email: string }>(event)
-  if (!email?.trim()) throw createError({ statusCode: 400, message: 'Email obrigatório.' })
+  const userId = getRouterParam(event, 'userId')
+  if (userId === user.id) throw createError({ statusCode: 400, message: 'Não podes alterar o teu próprio status de admin.' })
 
-  // Usa service role apenas para a operação privilegiada
+  const { novoAdmin } = await readBody<{ novoAdmin: boolean }>(event)
+  if (typeof novoAdmin !== 'boolean') throw createError({ statusCode: 400, message: 'Valor inválido.' })
+
+  // Usa service role para atualizar outro utilizador
   const serviceClient = serverSupabaseServiceRole(event)
-  const origin = getRequestURL(event).origin
-
-  const { error } = await serviceClient.auth.admin.inviteUserByEmail(email.trim().toLowerCase(), {
-    redirectTo: `${origin}/aceitar-convite`,
-  })
+  const { error } = await serviceClient
+    .from('profiles')
+    .update({ admin: novoAdmin })
+    .eq('id', userId)
 
   if (error) throw createError({ statusCode: 400, message: error.message })
 
