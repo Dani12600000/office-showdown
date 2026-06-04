@@ -9,32 +9,26 @@ const supabase = useSupabaseClient()
 const tokenInvalido = ref(false)
 const sessaoOk = ref(false)
 
-onMounted(async () => {
-  try {
-    const { data: existing } = await supabase.auth.getSession()
-    if (existing.session) {
+onMounted(() => {
+  const fallback = setTimeout(() => {
+    if (!sessaoOk.value) tokenInvalido.value = true
+  }, 10000)
+
+  function handleSession(session: unknown) {
+    if (session) {
+      clearTimeout(fallback)
       sessaoOk.value = true
       history.replaceState(null, '', window.location.pathname)
-      return
     }
-
-    const params = new URLSearchParams(window.location.hash.substring(1))
-    const accessToken = params.get('access_token')
-    const refreshToken = params.get('refresh_token')
-
-    if (accessToken && refreshToken) {
-      const { data, error } = await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken })
-      if (!error && data.session) {
-        sessaoOk.value = true
-        history.replaceState(null, '', window.location.pathname)
-        return
-      }
-    }
-  } catch (_) {
-    // Qualquer excepção → token inválido/expirado
   }
 
-  tokenInvalido.value = true
+  supabase.auth.onAuthStateChange((event, session) => {
+    if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'PASSWORD_RECOVERY') {
+      handleSession(session)
+    }
+  })
+
+  supabase.auth.getSession().then(({ data }) => handleSession(data.session))
 })
 
 const password = ref('')

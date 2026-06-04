@@ -9,37 +9,31 @@ const tokenInvalido = ref(false)
 const sessaoOk = ref(false)
 const userId = ref('')
 
-onMounted(async () => {
-  try {
-    // O plugin auth.client.ts pode já ter processado os tokens do hash —
-    // verifica a sessão existente primeiro
-    const { data: existing } = await supabase.auth.getSession()
-    if (existing.session?.user) {
-      userId.value = existing.session.user.id
+onMounted(() => {
+  // Timeout de segurança — se o Supabase não processar os tokens em 10s, o link é inválido
+  const fallback = setTimeout(() => {
+    if (!sessaoOk.value) tokenInvalido.value = true
+  }, 10000)
+
+  function handleSession(session: { user: { id: string } } | null) {
+    if (session?.user) {
+      clearTimeout(fallback)
+      userId.value = session.user.id
       sessaoOk.value = true
       history.replaceState(null, '', window.location.pathname)
-      return
     }
-
-    // Tenta estabelecer sessão manualmente a partir dos tokens do hash
-    const params = new URLSearchParams(window.location.hash.substring(1))
-    const accessToken = params.get('access_token')
-    const refreshToken = params.get('refresh_token')
-
-    if (accessToken && refreshToken) {
-      const { data, error } = await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken })
-      if (!error && data.session?.user) {
-        userId.value = data.session.user.id
-        sessaoOk.value = true
-        history.replaceState(null, '', window.location.pathname)
-        return
-      }
-    }
-  } catch (_) {
-    // Qualquer excepção → token inválido/expirado
   }
 
-  tokenInvalido.value = true
+  // Escuta eventos de auth — o Supabase processa os tokens do hash automaticamente
+  // com detectSessionInUrl: true e dispara SIGNED_IN
+  supabase.auth.onAuthStateChange((event, session) => {
+    if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+      handleSession(session)
+    }
+  })
+
+  // Verifica também imediatamente (pode já estar processado)
+  supabase.auth.getSession().then(({ data }) => handleSession(data.session))
 })
 
 // Formulário
