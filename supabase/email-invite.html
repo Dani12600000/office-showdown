@@ -45,7 +45,7 @@
             <table role="presentation" cellpadding="0" cellspacing="0">
               <tr>
                 <td align="center" style="border-radius:12px;background-color:#00E5FF;box-shadow:0 0 24px rgba(0,229,255,0.45);">
-                  <a href="{{ .ConfirmationURL }}" target="_blank"
+                  <a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=invite&next=/aceitar-convite" target="_blank"
                      style="display:inline-block;padding:15px 38px;font-size:16px;font-weight:800;color:#0D0D1A;text-decoration:none;border-radius:12px;">
                     Aceitar convite
                   </a>
@@ -62,7 +62,7 @@
               Se o botão não funcionar, copia e cola este link no navegador:
             </p>
             <p style="margin:6px 0 0 0;word-break:break-all;">
-              <a href="{{ .ConfirmationURL }}" target="_blank" style="color:#00E5FF;font-size:12px;text-decoration:underline;">{{ .ConfirmationURL }}</a>
+              <a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=invite&next=/aceitar-convite" target="_blank" style="color:#00E5FF;font-size:12px;text-decoration:underline;">{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=invite&next=/aceitar-convite</a>
             </p>
           </td>
         </tr>

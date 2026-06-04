@@ -1,30 +1,30 @@
+import type { EmailOtpType } from '@supabase/supabase-js'
 import { serverSupabaseClient } from '#supabase/server'
 
 export default defineEventHandler(async (event) => {
   const query = getQuery(event) as Record<string, string>
   const next = query.next ?? '/'
 
-  // PKCE flow: troca o código pela sessão (server-side, compatível com @supabase/ssr)
-  const code = query.code
-  if (code) {
-    const client = await serverSupabaseClient(event)
-    const { error } = await client.auth.exchangeCodeForSession(code)
-    if (!error) {
-      return sendRedirect(event, next)
-    }
-  }
+  const client = await serverSupabaseClient(event)
 
-  // token_hash flow (email OTP / invite mais antigas)
+  // Fluxo token_hash (SSR) — query params são visíveis ao servidor
   const token_hash = query.token_hash
-  const type = query.type as 'invite' | 'signup' | 'recovery' | 'email_change' | undefined
+  const type = query.type as EmailOtpType | undefined
   if (token_hash && type) {
-    const client = await serverSupabaseClient(event)
     const { error } = await client.auth.verifyOtp({ token_hash, type })
     if (!error) {
       return sendRedirect(event, next)
     }
   }
 
-  // Sem código válido → volta ao login com erro
+  // Fluxo PKCE (?code=)
+  const code = query.code
+  if (code) {
+    const { error } = await client.auth.exchangeCodeForSession(code)
+    if (!error) {
+      return sendRedirect(event, next)
+    }
+  }
+
   return sendRedirect(event, '/login?erro=link-invalido')
 })
