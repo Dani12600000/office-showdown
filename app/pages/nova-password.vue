@@ -9,15 +9,26 @@ const supabase = useSupabaseClient()
 const tokenInvalido = ref(false)
 const sessaoOk = ref(false)
 
-onMounted(async () => {
-  // Dá tempo ao cliente para processar o hash da URL
-  await new Promise(resolve => setTimeout(resolve, 300))
-  const { data } = await supabase.auth.getSession()
-  if (data.session) {
-    sessaoOk.value = true
-  } else {
-    tokenInvalido.value = true
-  }
+onMounted(() => {
+  const fallback = setTimeout(() => {
+    if (!sessaoOk.value) tokenInvalido.value = true
+  }, 8000)
+
+  const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session) {
+      clearTimeout(fallback)
+      sessaoOk.value = true
+      subscription.unsubscribe()
+    }
+  })
+
+  supabase.auth.getSession().then(({ data }) => {
+    if (data.session) {
+      clearTimeout(fallback)
+      sessaoOk.value = true
+      subscription.unsubscribe()
+    }
+  })
 })
 
 const password = ref('')

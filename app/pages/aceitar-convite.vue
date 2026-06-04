@@ -9,15 +9,31 @@ const tokenInvalido = ref(false)
 const sessaoOk = ref(false)
 const userId = ref('')
 
-onMounted(async () => {
-  await new Promise(resolve => setTimeout(resolve, 300))
-  const { data } = await supabase.auth.getSession()
-  if (data.session?.user) {
-    userId.value = data.session.user.id
-    sessaoOk.value = true
-  } else {
-    tokenInvalido.value = true
-  }
+onMounted(() => {
+  // Timeout de segurança — se passarem 8s sem sessão, o link é inválido
+  const fallback = setTimeout(() => {
+    if (!sessaoOk.value) tokenInvalido.value = true
+  }, 8000)
+
+  // Escuta o evento SIGNED_IN que o Supabase dispara após processar o hash
+  const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session?.user) {
+      clearTimeout(fallback)
+      userId.value = session.user.id
+      sessaoOk.value = true
+      subscription.unsubscribe()
+    }
+  })
+
+  // Verifica também imediatamente (caso a sessão já esteja disponível)
+  supabase.auth.getSession().then(({ data }) => {
+    if (data.session?.user) {
+      clearTimeout(fallback)
+      userId.value = data.session.user.id
+      sessaoOk.value = true
+      subscription.unsubscribe()
+    }
+  })
 })
 
 // Formulário
