@@ -853,7 +853,7 @@ async function confirmarIniciar() {
 
     <!-- ===== FAB: PAINEL DE CONTROLO DE BOTS (admin, a jogar) ===== -->
     <v-menu
-      v-if="isAdmin && emJogo"
+      v-if="isAdmin && emJogo && botsParaControlar.length"
       location="top end"
       :close-on-content-click="false"
       offset="12"
@@ -909,7 +909,7 @@ async function confirmarIniciar() {
 
     <!-- ===== FAB: PERSONIFICAR BOTS NO LOBBY (admin) ===== -->
     <v-menu
-      v-if="isAdmin && emLobby"
+      v-if="isAdmin && emLobby && botsLobby.length"
       location="top end"
       :close-on-content-click="false"
       offset="12"
