@@ -9,31 +9,24 @@ const tokenInvalido = ref(false)
 const sessaoOk = ref(false)
 const userId = ref('')
 
-onMounted(() => {
-  // Timeout de segurança — se passarem 8s sem sessão, o link é inválido
-  const fallback = setTimeout(() => {
-    if (!sessaoOk.value) tokenInvalido.value = true
-  }, 8000)
+onMounted(async () => {
+  // Lê os tokens diretamente do hash da URL e estabelece a sessão manualmente
+  const params = new URLSearchParams(window.location.hash.substring(1))
+  const accessToken = params.get('access_token')
+  const refreshToken = params.get('refresh_token')
 
-  // Escuta o evento SIGNED_IN que o Supabase dispara após processar o hash
-  const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-    if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session?.user) {
-      clearTimeout(fallback)
-      userId.value = session.user.id
-      sessaoOk.value = true
-      subscription.unsubscribe()
-    }
-  })
-
-  // Verifica também imediatamente (caso a sessão já esteja disponível)
-  supabase.auth.getSession().then(({ data }) => {
-    if (data.session?.user) {
-      clearTimeout(fallback)
+  if (accessToken && refreshToken) {
+    const { data, error } = await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken })
+    if (!error && data.session?.user) {
       userId.value = data.session.user.id
       sessaoOk.value = true
-      subscription.unsubscribe()
+      // Limpa o hash da URL sem recarregar
+      history.replaceState(null, '', window.location.pathname)
+      return
     }
-  })
+  }
+
+  tokenInvalido.value = true
 })
 
 // Formulário

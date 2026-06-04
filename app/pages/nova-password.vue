@@ -9,26 +9,21 @@ const supabase = useSupabaseClient()
 const tokenInvalido = ref(false)
 const sessaoOk = ref(false)
 
-onMounted(() => {
-  const fallback = setTimeout(() => {
-    if (!sessaoOk.value) tokenInvalido.value = true
-  }, 8000)
+onMounted(async () => {
+  const params = new URLSearchParams(window.location.hash.substring(1))
+  const accessToken = params.get('access_token')
+  const refreshToken = params.get('refresh_token')
 
-  const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-    if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session) {
-      clearTimeout(fallback)
+  if (accessToken && refreshToken) {
+    const { data, error } = await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken })
+    if (!error && data.session) {
       sessaoOk.value = true
-      subscription.unsubscribe()
+      history.replaceState(null, '', window.location.pathname)
+      return
     }
-  })
+  }
 
-  supabase.auth.getSession().then(({ data }) => {
-    if (data.session) {
-      clearTimeout(fallback)
-      sessaoOk.value = true
-      subscription.unsubscribe()
-    }
-  })
+  tokenInvalido.value = true
 })
 
 const password = ref('')
