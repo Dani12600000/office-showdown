@@ -1,15 +1,19 @@
 import { serverSupabaseServiceRole, serverSupabaseUser } from '#supabase/server'
 
 export default defineEventHandler(async (event) => {
-  const user = await serverSupabaseUser(event)
-  if (!user) throw createError({ statusCode: 401, message: 'Não autenticado.' })
+  const rawUser = await serverSupabaseUser(event)
+  if (!rawUser) throw createError({ statusCode: 401, message: 'Não autenticado.' })
+
+  // Supabase pode devolver o payload JWT (sub) ou o objeto User (id)
+  const userId = (rawUser as any).id ?? (rawUser as any).sub
+  if (!userId) throw createError({ statusCode: 401, message: 'Sessão inválida.' })
 
   const serviceClient = serverSupabaseServiceRole(event)
 
   const { data: perfil, error: perfilError } = await serviceClient
     .from('profiles')
     .select('admin')
-    .eq('id', user.id)
+    .eq('id', userId)
     .single()
 
   if (perfilError) throw createError({ statusCode: 500, message: `Erro ao verificar perfil: ${perfilError.message}` })
