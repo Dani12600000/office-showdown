@@ -37,7 +37,7 @@ export const useAuth = () => {
     }
   }
 
-  const signup = async (username: string, name: string, email: string, password: string): Promise<void> => {
+  const signup = async (username: string, name: string, email: string, password: string): Promise<{ confirmacaoPendente: boolean }> => {
     const usernameClean = username.trim().toLowerCase()
 
     const { data: existe } = await supabase
@@ -53,16 +53,19 @@ export const useAuth = () => {
       password,
       options: {
         data: { username: usernameClean, name, admin: false },
+        redirectTo: `${window.location.origin}/`,
       },
     })
 
     if (error) throw new Error(error.message)
 
-    // Aguarda o trigger criar o perfil, depois carrega
-    if (authData.user) {
+    // Só há sessão imediata se a confirmação de email estiver desativada no Supabase
+    if (authData.session && authData.user) {
       await new Promise(resolve => setTimeout(resolve, 500))
       await carregarPerfil(authData.user.id)
     }
+
+    return { confirmacaoPendente: !authData.session }
   }
 
   const atualizarPerfil = async (campos: { name?: string; avatar_url?: string | null }): Promise<void> => {
@@ -103,6 +106,32 @@ export const useAuth = () => {
     await atualizarPerfil({ avatar_url: avatarUrl })
   }
 
+  const pedirResetPassword = async (username: string): Promise<void> => {
+    const { data: email, error: rpcError } = await supabase
+      .rpc('get_email_by_username', { p_username: username.trim().toLowerCase() })
+
+    if (rpcError) throw new Error(`Erro ao procurar utilizador: ${rpcError.message}`)
+    if (!email) throw new Error('Utilizador não encontrado.')
+
+    const { error } = await supabase.auth.resetPasswordForEmail(email as string, {
+      redirectTo: `${window.location.origin}/nova-password`,
+    })
+    if (error) throw new Error(error.message)
+  }
+
+  const atualizarPassword = async (novaPassword: string): Promise<void> => {
+    const { error } = await supabase.auth.updateUser({ password: novaPassword })
+    if (error) throw new Error(error.message)
+  }
+
+  const alterarEmail = async (novoEmail: string): Promise<void> => {
+    const { error } = await supabase.auth.updateUser({
+      email: novoEmail.trim().toLowerCase(),
+      options: { emailRedirectTo: `${window.location.origin}/` },
+    })
+    if (error) throw new Error(error.message)
+  }
+
   const logout = async (): Promise<void> => {
     await supabase.auth.signOut()
     perfil.value = null
@@ -117,6 +146,9 @@ export const useAuth = () => {
     login,
     signup,
     logout,
+    pedirResetPassword,
+    atualizarPassword,
+    alterarEmail,
     carregarPerfil,
     atualizarPerfil,
     uploadAvatar,

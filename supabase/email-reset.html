@@ -1,6 +1,6 @@
 <!--
-  OFFICE SHOWDOWN — Confirmação de email
-  Supabase → Authentication → Emails → "Confirm signup"
+  OFFICE SHOWDOWN — Recuperação de password
+  Supabase → Authentication → Emails → "Reset password"
 -->
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0;padding:0;background-color:#0D0D1A;">
   <tr>
@@ -26,7 +26,7 @@
         <!-- Título -->
         <tr>
           <td align="center" style="padding:28px 32px 0 32px;">
-            <h1 style="margin:0;color:#FFFFFF;font-size:24px;font-weight:800;">Confirma o teu email</h1>
+            <h1 style="margin:0;color:#FFFFFF;font-size:24px;font-weight:800;">Recuperar password</h1>
           </td>
         </tr>
 
@@ -34,7 +34,7 @@
         <tr>
           <td align="center" style="padding:14px 32px 0 32px;">
             <p style="margin:0;color:#A9AEC4;font-size:15px;line-height:1.6;">
-              Estás quase dentro do jogo! Clica no botão abaixo para confirmar o teu email e terminar o registo.
+              Recebemos um pedido para redefinir a password da tua conta. Clica no botão abaixo para escolheres uma nova password.
             </p>
           </td>
         </tr>
@@ -44,10 +44,10 @@
           <td align="center" style="padding:28px 32px 8px 32px;">
             <table role="presentation" cellpadding="0" cellspacing="0">
               <tr>
-                <td align="center" style="border-radius:12px;background-color:#00E5FF;box-shadow:0 0 24px rgba(0,229,255,0.45);">
+                <td align="center" style="border-radius:12px;background-color:#FF1744;box-shadow:0 0 24px rgba(255,23,68,0.45);">
                   <a href="{{ .ConfirmationURL }}" target="_blank"
-                     style="display:inline-block;padding:15px 38px;font-size:16px;font-weight:800;color:#0D0D1A;text-decoration:none;border-radius:12px;">
-                    Confirmar email
+                     style="display:inline-block;padding:15px 38px;font-size:16px;font-weight:800;color:#FFFFFF;text-decoration:none;border-radius:12px;">
+                    Redefinir password
                   </a>
                 </td>
               </tr>
@@ -78,7 +78,7 @@
         <tr>
           <td align="center" style="padding:18px 32px 36px 32px;">
             <p style="margin:0;color:#6E7390;font-size:12px;line-height:1.6;">
-              Se não foste tu a criar esta conta, podes ignorar este email com segurança.
+              Se não pediste a recuperação de password, podes ignorar este email com segurança. A tua password atual não será alterada.
             </p>
             <p style="margin:10px 0 0 0;color:#4A4F68;font-size:11px;">⚔️ Office Showdown</p>
           </td>

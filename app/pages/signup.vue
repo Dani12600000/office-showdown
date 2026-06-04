@@ -15,6 +15,7 @@ const passwordConfirm = ref('')
 const erro = ref('')
 const loading = ref(false)
 const mostrarPassword = ref(false)
+const confirmacaoPendente = ref(false)
 
 const emailValido = computed(() =>
   !email.value || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value)
@@ -38,8 +39,12 @@ async function submeter() {
   erro.value = ''
   loading.value = true
   try {
-    await signup(username.value, nome.value, email.value, password.value)
-    await navigateTo('/')
+    const { confirmacaoPendente: pendente } = await signup(username.value, nome.value, email.value, password.value)
+    if (pendente) {
+      confirmacaoPendente.value = true
+    } else {
+      await navigateTo('/')
+    }
   } catch (e: any) {
     erro.value = e.message
   } finally {
@@ -55,11 +60,24 @@ async function submeter() {
 
         <!-- Cabeçalho -->
         <div v-motion-fade class="mb-8">
-          <LogoShowdown subtitulo="Criar conta" />
+          <LogoShowdown :subtitulo="confirmacaoPendente ? '' : 'Criar conta'" />
         </div>
 
+        <!-- Ecrã de confirmação pendente -->
+        <v-card v-if="confirmacaoPendente" v-motion-slide-visible-bottom elevation="8">
+          <v-card-text class="pa-8 text-center">
+            <v-icon size="64" color="primary" class="mb-4">mdi-email-check-outline</v-icon>
+            <h2 class="text-h6 font-weight-bold mb-3">Verifica o teu email</h2>
+            <p class="text-medium-emphasis text-body-2 mb-6">
+              Enviámos um link de confirmação para <strong>{{ email }}</strong>.<br>
+              Clica no link para entrares no jogo. Após confirmar, serás redirecionado automaticamente.
+            </p>
+            <v-btn variant="text" color="primary" to="/login">Ir para o login</v-btn>
+          </v-card-text>
+        </v-card>
+
         <!-- Card de registo -->
-        <v-card v-motion-slide-visible-bottom elevation="8">
+        <v-card v-else v-motion-slide-visible-bottom elevation="8">
           <v-card-text class="pa-6">
             <v-form @submit.prevent="submeter">
 

@@ -74,10 +74,14 @@ async function submeter() {
 
           <v-divider />
 
-          <v-card-actions class="justify-center pa-4">
+          <v-card-actions class="justify-center pa-4 flex-wrap" style="gap:0;">
             <span class="text-body-2 text-medium-emphasis">Ainda não tens conta?</span>
             <v-btn variant="text" color="primary" size="small" to="/signup" class="ml-1">
               Criar conta
+            </v-btn>
+            <v-divider vertical class="mx-2 my-1" />
+            <v-btn variant="text" color="secondary" size="small" to="/recuperar-password">
+              Esqueceste a password?
             </v-btn>
           </v-card-actions>
         </v-card>
