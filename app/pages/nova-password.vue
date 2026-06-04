@@ -2,17 +2,34 @@
 definePageMeta({ layout: 'auth' })
 
 const { atualizarPassword } = useAuth()
+const supabase = useSupabaseClient()
 const supabaseUser = useSupabaseUser()
 
 const tokenInvalido = ref(false)
 const sessaoOk = ref(false)
 
-onMounted(() => {
+onMounted(async () => {
   if (supabaseUser.value?.id) {
     sessaoOk.value = true
-  } else {
-    tokenInvalido.value = true
+    return
   }
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (user?.id) {
+    sessaoOk.value = true
+    return
+  }
+
+  const ate = Date.now() + 4000
+  while (Date.now() < ate) {
+    await new Promise(r => setTimeout(r, 300))
+    if (supabaseUser.value?.id) {
+      sessaoOk.value = true
+      return
+    }
+  }
+
+  tokenInvalido.value = true
 })
 
 const password = ref('')

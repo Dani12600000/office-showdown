@@ -2,6 +2,7 @@
 definePageMeta({ layout: 'auth' })
 
 const { carregarPerfil } = useAuth()
+const supabase = useSupabaseClient()
 const supabaseUser = useSupabaseUser()
 
 // Estados de carregamento do token
@@ -9,14 +10,36 @@ const tokenInvalido = ref(false)
 const sessaoOk = ref(false)
 const userId = ref('')
 
-onMounted(() => {
-  // useSupabaseUser é sincronizado entre servidor e cliente via hidratação
+function ativarSessao(id: string) {
+  userId.value = id
+  sessaoOk.value = true
+}
+
+onMounted(async () => {
+  // 1) Estado já hidratado
   if (supabaseUser.value?.id) {
-    userId.value = supabaseUser.value.id
-    sessaoOk.value = true
-  } else {
-    tokenInvalido.value = true
+    ativarSessao(supabaseUser.value.id)
+    return
   }
+
+  // 2) Valida o cookie de sessão diretamente no servidor (autoritativo)
+  const { data: { user } } = await supabase.auth.getUser()
+  if (user?.id) {
+    ativarSessao(user.id)
+    return
+  }
+
+  // 3) Última hipótese: espera que o estado reativo sincronize (até ~4s)
+  const ate = Date.now() + 4000
+  while (Date.now() < ate) {
+    await new Promise(r => setTimeout(r, 300))
+    if (supabaseUser.value?.id) {
+      ativarSessao(supabaseUser.value.id)
+      return
+    }
+  }
+
+  tokenInvalido.value = true
 })
 
 // Formulário
