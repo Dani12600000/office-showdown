@@ -1,17 +1,14 @@
 <script setup lang="ts">
 definePageMeta({ layout: 'auth' })
 
-const { atualizarPassword, isLoggedIn } = useAuth()
-const supabase = useSupabaseClient()
+const { atualizarPassword } = useAuth()
+const supabaseUser = useSupabaseUser()
 
-// Aguarda que o @nuxtjs/supabase processe o token do URL (hash fragment)
-// antes de verificar se temos uma sessão de recuperação válida
 const tokenInvalido = ref(false)
 const sessaoOk = ref(false)
 
-onMounted(async () => {
-  const { data } = await supabase.auth.getSession()
-  if (data.session) {
+onMounted(() => {
+  if (supabaseUser.value?.id) {
     sessaoOk.value = true
   } else {
     tokenInvalido.value = true

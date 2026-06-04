@@ -1,20 +1,18 @@
 <script setup lang="ts">
 definePageMeta({ layout: 'auth' })
 
-const supabase = useSupabaseClient()
 const { carregarPerfil } = useAuth()
+const supabaseUser = useSupabaseUser()
 
 // Estados de carregamento do token
 const tokenInvalido = ref(false)
 const sessaoOk = ref(false)
 const userId = ref('')
 
-onMounted(async () => {
-  // Com @nuxtjs/supabase v2, a sessão é gerida server-side via cookies.
-  // O route /auth/confirm já fez a troca e o utilizador chegou aqui autenticado.
-  const { data } = await supabase.auth.getSession()
-  if (data.session?.user) {
-    userId.value = data.session.user.id
+onMounted(() => {
+  // useSupabaseUser é sincronizado entre servidor e cliente via hidratação
+  if (supabaseUser.value?.id) {
+    userId.value = supabaseUser.value.id
     sessaoOk.value = true
   } else {
     tokenInvalido.value = true
