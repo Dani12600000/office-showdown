@@ -1,5 +1,6 @@
 <script setup lang="ts">
 const { perfil, logout, isAdmin } = useAuth()
+const painelAdmin = ref(false)
 
 async function sair() {
   await logout()
@@ -18,11 +19,21 @@ async function sair() {
     </v-app-bar-title>
 
     <template #append>
-      <!-- Badge de admin -->
-      <v-chip v-if="isAdmin" color="accent" size="small" class="mr-3" label>
+      <!-- Botão de admin -->
+      <v-chip
+        v-if="isAdmin"
+        color="accent"
+        size="small"
+        class="mr-3"
+        label
+        style="cursor:pointer;"
+        @click="painelAdmin = true"
+      >
         <v-icon start size="14">mdi-shield-crown</v-icon>
         Admin
       </v-chip>
+
+      <PainelAdmin v-model="painelAdmin" />
 
       <!-- Menu do utilizador -->
       <v-menu min-width="180">
