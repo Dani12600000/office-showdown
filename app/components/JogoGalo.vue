@@ -19,6 +19,19 @@ const mostrarControlos = computed(() => podeJogar.value)
 
 await carregar()
 
+const introKey = `intro-visto-${props.partidaId}`
+const introVisivel = ref(false)
+
+function mostrarIntroSeNecessario() {
+  if (emDestaque.value && !sessionStorage.getItem(introKey)) {
+    introVisivel.value = true
+  }
+}
+
+onMounted(() => mostrarIntroSeNecessario())
+watch(emDestaque, (v) => { if (v) mostrarIntroSeNecessario() })
+function introFinalizada() { introVisivel.value = false; sessionStorage.setItem(introKey, '1') }
+
 const aJogar = ref(false)
 const erro = ref('')
 
@@ -53,6 +66,8 @@ const torneioId = useRoute().params.id as string
 </script>
 
 <template>
+  <IntroPartida :jogador1="jogador1" :jogador2="jogador2" :visivel="introVisivel" @done="introFinalizada" />
+
   <div v-if="loading" class="d-flex justify-center align-center" style="min-height:60vh">
     <v-progress-circular indeterminate color="primary" size="56" />
   </div>

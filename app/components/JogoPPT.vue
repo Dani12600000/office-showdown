@@ -3,7 +3,6 @@ import confetti from 'canvas-confetti'
 import type { EscolhaPPT } from '~/composables/usePartida'
 
 const props = defineProps<{ partidaId: string; comoId: string | null }>()
-// Vue desempacota refs em props → reembrulho num computed para o composable.
 const comoRef = computed(() => props.comoId)
 
 const {
@@ -19,6 +18,27 @@ const {
 const mostrarControlos = computed(() => podeJogar.value)
 
 await carregar()
+
+// Intro: mostra uma vez por sessão por partida
+const introKey = `intro-visto-${props.partidaId}`
+const introVisivel = ref(false)
+
+function mostrarIntroSeNecessario() {
+  if (emDestaque.value && !sessionStorage.getItem(introKey)) {
+    introVisivel.value = true
+  }
+}
+
+onMounted(() => mostrarIntroSeNecessario())
+
+watch(emDestaque, (v) => {
+  if (v) mostrarIntroSeNecessario()
+})
+
+function introFinalizada() {
+  introVisivel.value = false
+  sessionStorage.setItem(introKey, '1')
+}
 
 const escolhas: { valor: EscolhaPPT; emoji: string; label: string }[] = [
   { valor: 'pedra',   emoji: '✊', label: 'Pedra' },
@@ -65,6 +85,13 @@ const torneioId = useRoute().params.id as string
 </script>
 
 <template>
+  <IntroPartida
+    :jogador1="jogador1"
+    :jogador2="jogador2"
+    :visivel="introVisivel"
+    @done="introFinalizada"
+  />
+
   <div v-if="loading" class="d-flex justify-center align-center" style="min-height:60vh">
     <v-progress-circular indeterminate color="primary" size="56" />
   </div>
