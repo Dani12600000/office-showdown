@@ -228,15 +228,27 @@ export const useLobby = (torneioId: string) => {
   let limparTimer: ReturnType<typeof setTimeout> | null = null
   let destaqueAgendado: string | null = null
   watch(partidaDestaque, (p) => {
-    if (limparTimer) { clearTimeout(limparTimer); limparTimer = null }
-    if (!p || p.status !== 'TERMINADO') { destaqueAgendado = null; return }
-    if (destaqueAgendado === p.id) return
+    // Sem destaque ou ainda a jogar → cancela qualquer timer pendente e sai.
+    if (!p || p.status !== 'TERMINADO') {
+      if (limparTimer) { clearTimeout(limparTimer); limparTimer = null }
+      destaqueAgendado = null
+      return
+    }
 
+    // Já há um timer a contar para ESTA partida → não mexer.
+    // (partidaDestaque é um computed com .find(): cada carregarLobby gera um
+    // novo objeto e re-dispara este watch. Sem este guard, qualquer evento de
+    // realtime após o fim do jogo cancelava o timer e o palco ficava preso.)
+    if (destaqueAgendado === p.id && limparTimer) return
+
+    // Nova partida terminada → (re)agenda a limpeza.
+    if (limparTimer) { clearTimeout(limparTimer); limparTimer = null }
     const fimRevelacao = p.revelar_ate ? new Date(p.revelar_ate).getTime() : Date.now()
     const delay = Math.max(0, fimRevelacao - Date.now() + 4000)
 
     destaqueAgendado = p.id
     limparTimer = setTimeout(async () => {
+      limparTimer = null
       // Só limpa se ainda for esta a partida em destaque
       if (torneio.value?.partida_destaque_id !== p.id) return
       try {
