@@ -47,6 +47,24 @@ watch(terminado, (fim) => {
 }, { immediate: true })
 
 onUnmounted(() => { if (timer) clearInterval(timer) })
+
+// ---- Animações de transição ----
+
+// 1) ARVORE → JOGO: "OS JOGOS COMEÇAM!"
+const inicioJogosVisivel = ref(false)
+watch(emJogo, (v, old) => {
+  if (v && !old) inicioJogosVisivel.value = true
+})
+
+// 2) Nova partida em destaque → intro dos jogadores
+const introPartidaVisivel = ref(false)
+const projetorPronto = ref(false)
+onMounted(() => { setTimeout(() => { projetorPronto.value = true }, 1500) })
+
+watch(() => dest.value?.id, (newId, oldId) => {
+  if (!projetorPronto.value) return
+  if (newId && newId !== oldId) introPartidaVisivel.value = true
+})
 </script>
 
 <template>
@@ -55,6 +73,18 @@ onUnmounted(() => { if (timer) clearInterval(timer) })
   </div>
 
   <div v-else-if="torneio" class="pa-8">
+
+    <!-- Animações de transição (usam Teleport → rendem no body) -->
+    <TransicaoInicioJogo
+      :visivel="inicioJogosVisivel"
+      @done="inicioJogosVisivel = false"
+    />
+    <IntroPartida
+      :jogador1="j1"
+      :jogador2="j2"
+      :visivel="introPartidaVisivel"
+      @done="introPartidaVisivel = false"
+    />
 
     <!-- ===== CABEÇALHO ===== -->
     <div class="d-flex align-center justify-space-between mb-6">
@@ -72,8 +102,10 @@ onUnmounted(() => { if (timer) clearInterval(timer) })
       </div>
     </div>
 
+    <Transition name="proj-fade" mode="out-in">
+
     <!-- ===== CAMPEÃO ===== -->
-    <div v-if="terminado" class="text-center py-10">
+    <div v-if="terminado" key="campiao" class="text-center py-10">
       <p class="text-overline text-medium-emphasis" style="font-size:1.2rem !important">Campeão</p>
       <v-avatar size="240" color="primary" class="champion-glow my-6">
         <v-img v-if="campeao?.avatar_url" :src="campeao.avatar_url" cover />
@@ -84,7 +116,7 @@ onUnmounted(() => { if (timer) clearInterval(timer) })
     </div>
 
     <!-- ===== LOBBY ===== -->
-    <div v-else-if="emLobby" class="lobby-grid">
+    <div v-else-if="emLobby" key="lobby" class="lobby-grid">
       <div class="qr-painel text-center">
         <p class="text-overline text-medium-emphasis mb-2" style="font-size:1rem !important">Entra no jogo</p>
         <QrCode :value="urlEntrada" :size="300" class="mx-auto" />
@@ -142,7 +174,7 @@ onUnmounted(() => { if (timer) clearInterval(timer) })
     </div>
 
     <!-- ===== ARVORE ===== -->
-    <div v-else-if="naArvore">
+    <div v-else-if="naArvore" key="arvore">
       <div v-motion-fade class="text-center mb-8">
         <v-chip size="large" color="secondary" class="font-weight-bold">
           <v-icon start>mdi-tournament</v-icon>Os confrontos · {{ faseAtual }}
@@ -172,39 +204,60 @@ onUnmounted(() => { if (timer) clearInterval(timer) })
     </div>
 
     <!-- ===== A JOGAR: PARTIDA EM DESTAQUE ===== -->
-    <template v-else-if="emJogo">
-      <div v-if="dest">
-        <!-- Apostas a decorrer → ecrã de apostas -->
-        <ApostasProjetor
-          v-if="apostasAbertas"
-          :j1="j1" :j2="j2"
-          :pote1="poteJog1" :pote2="poteJog2"
-          :n1="nApostadores1" :n2="nApostadores2"
-        />
-        <!-- senão, o jogo -->
-        <template v-else>
-          <JogoPPTProjetor    v-if="jogoDestTipo === 'PPT'"       :partida="dest" :jogador1="j1" :jogador2="j2" />
-          <JogoGaloProjetor   v-else-if="jogoDestTipo === 'GALO'"   :partida="dest" :jogador1="j1" :jogador2="j2" />
-          <JogoQuatroProjetor v-else-if="jogoDestTipo === 'QUATRO'" :partida="dest" :jogador1="j1" :jogador2="j2" />
-          <JogoNavalProjetor  v-else-if="jogoDestTipo === 'NAVAL'"  :partida="dest" :jogador1="j1" :jogador2="j2" />
-          <div v-else class="text-center py-12">
-            <v-icon size="80" color="surface-variant" class="mb-4">mdi-hammer-wrench</v-icon>
-            <h2 class="text-h4 font-weight-bold">Este jogo ainda está em construção</h2>
-          </div>
-        </template>
-      </div>
+    <div v-else-if="emJogo" key="jogo">
+      <Transition name="proj-fade" mode="out-in">
+        <div v-if="dest" :key="dest.id">
+          <Transition name="proj-fade" mode="out-in">
+            <!-- Apostas a decorrer → ecrã de apostas -->
+            <ApostasProjetor
+              v-if="apostasAbertas"
+              key="apostas"
+              :j1="j1" :j2="j2"
+              :pote1="poteJog1" :pote2="poteJog2"
+              :n1="nApostadores1" :n2="nApostadores2"
+            />
+            <!-- senão, o jogo -->
+            <div v-else key="jogo-ativo">
+              <JogoPPTProjetor    v-if="jogoDestTipo === 'PPT'"       :partida="dest" :jogador1="j1" :jogador2="j2" />
+              <JogoGaloProjetor   v-else-if="jogoDestTipo === 'GALO'"   :partida="dest" :jogador1="j1" :jogador2="j2" />
+              <JogoQuatroProjetor v-else-if="jogoDestTipo === 'QUATRO'" :partida="dest" :jogador1="j1" :jogador2="j2" />
+              <JogoNavalProjetor  v-else-if="jogoDestTipo === 'NAVAL'"  :partida="dest" :jogador1="j1" :jogador2="j2" />
+              <div v-else class="text-center py-12">
+                <v-icon size="80" color="surface-variant" class="mb-4">mdi-hammer-wrench</v-icon>
+                <h2 class="text-h4 font-weight-bold">Este jogo ainda está em construção</h2>
+              </div>
+            </div>
+          </Transition>
+        </div>
 
-      <div v-else class="standby">
-        <v-icon size="96" color="surface-variant" class="mb-4">mdi-television-off</v-icon>
-        <h2 class="text-h3 font-weight-bold mb-2">À espera da próxima partida…</h2>
-        <p class="text-h6 text-medium-emphasis">O apresentador vai escolher o próximo confronto.</p>
-      </div>
-    </template>
+        <div v-else key="standby" class="standby">
+          <v-icon size="96" color="surface-variant" class="mb-4">mdi-television-off</v-icon>
+          <h2 class="text-h3 font-weight-bold mb-2">À espera da próxima partida…</h2>
+          <p class="text-h6 text-medium-emphasis">O apresentador vai escolher o próximo confronto.</p>
+        </div>
+      </Transition>
+    </div>
+
+    </Transition><!-- fecha Transition principal -->
 
   </div>
 </template>
 
 <style scoped>
+/* Transições entre estados do projetor */
+.proj-fade-enter-active,
+.proj-fade-leave-active {
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+.proj-fade-enter-from {
+  opacity: 0;
+  transform: scale(0.97);
+}
+.proj-fade-leave-to {
+  opacity: 0;
+  transform: scale(1.02);
+}
+
 .champion-glow {
   box-shadow: 0 0 80px rgba(255, 214, 0, 0.7);
   outline: 4px solid rgb(var(--v-theme-accent));
