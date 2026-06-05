@@ -47,9 +47,30 @@ const resultadoUltima = computed(() => {
 
 const inicial = (u: Utilizador | null) => u?.name?.charAt(0).toUpperCase() ?? '?'
 
+function lançarConfetti() {
+  // Salva central grande
+  confetti({ particleCount: 200, spread: 100, origin: { x: 0.5, y: 0.55 }, zIndex: 9999 })
+  // Laterais em simultâneo
+  confetti({ particleCount: 120, angle: 60,  spread: 70, origin: { x: 0, y: 0.6 }, zIndex: 9999 })
+  confetti({ particleCount: 120, angle: 120, spread: 70, origin: { x: 1, y: 0.6 }, zIndex: 9999 })
+  // Segunda vaga após 600ms
+  setTimeout(() => {
+    confetti({ particleCount: 150, spread: 120, origin: { x: 0.5, y: 0.4 }, zIndex: 9999 })
+    confetti({ particleCount: 80,  angle: 70,  spread: 60, origin: { x: 0.1, y: 0.5 }, zIndex: 9999 })
+    confetti({ particleCount: 80,  angle: 110, spread: 60, origin: { x: 0.9, y: 0.5 }, zIndex: 9999 })
+  }, 600)
+  // Terceira vaga após 1.4s — chuva suave
+  setTimeout(() => {
+    confetti({ particleCount: 100, spread: 160, origin: { x: 0.5, y: 0 }, gravity: 0.6, zIndex: 9999 })
+  }, 1400)
+}
+
 watch(vitoriaVisivel, (vis, antes) => {
-  if (vis && !antes) confetti({ particleCount: 120, spread: 90, origin: { y: 0.6 } })
+  if (vis && !antes) lançarConfetti()
 })
+
+// Cobre o caso de já estar terminado ao montar (ex: refresh de página)
+onMounted(() => { if (vitoriaVisivel.value) lançarConfetti() })
 </script>
 
 <template>
