@@ -29,6 +29,17 @@ const alvoFixo = computed(() => props.minhaAposta?.alvo_id ?? null)
 const alvo = ref<string | null>(null)
 watch(() => props.minhaAposta?.alvo_id, (a) => { if (a) alvo.value = a }, { immediate: true })
 
+// O alvo só é válido se corresponder a um dos dois jogadores em palco.
+// (Ao trocar de partida, um alvo "fantasma" da anterior deixa de bater.)
+const alvoValido = computed(() =>
+  alvo.value === props.jogador1?.id || alvo.value === props.jogador2?.id
+)
+
+// Limpa a seleção quando muda de confronto e o alvo já não pertence à partida.
+watch(() => props.partida?.id, () => {
+  if (!alvoValido.value) alvo.value = alvoFixo.value
+})
+
 const montante = ref(10)
 watch(() => props.saldo, (s) => { if (montante.value > s) montante.value = Math.max(1, s) })
 
@@ -48,7 +59,7 @@ const nomeAlvo = computed(() =>
 )
 
 async function confirmar() {
-  if (!alvo.value || montante.value < 1 || montante.value > props.saldo) return
+  if (!alvoValido.value || montante.value < 1 || montante.value > props.saldo) return
   aApostar.value = true; erro.value = ''
   try { emit('apostar', alvo.value, montante.value) }
   finally { aApostar.value = false }
@@ -164,12 +175,12 @@ const resultado = computed(() => {
             </div>
             <v-btn
               color="accent" size="large" rounded="lg" block
-              :disabled="!alvo || montante < 1 || montante > saldo"
+              :disabled="!alvoValido || montante < 1 || montante > saldo"
               :loading="aApostar"
               prepend-icon="mdi-cash-plus"
               @click="confirmar"
             >
-              {{ alvo ? `Apostar ${montante} em ${nomeAlvo}` : 'Escolhe um jogador' }}
+              {{ alvoValido ? `Apostar ${montante} em ${nomeAlvo}` : 'Escolhe um jogador' }}
             </v-btn>
           </div>
           <p v-else class="text-center text-body-2 text-medium-emphasis py-2">Ficaste sem moedas. 😬</p>
