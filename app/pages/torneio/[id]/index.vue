@@ -608,23 +608,43 @@ async function confirmarIniciar() {
       />
 
       <!-- ===== VISTA: FOCADA NO JOGADOR (não-admin, a jogar) ===== -->
-      <div v-else-if="aJogar && !isAdmin && minhaParticipacao" class="py-4">
+      <ClientOnly v-else-if="aJogar && !isAdmin && minhaParticipacao">
+      <div class="py-4">
 
-        <!-- Plateia → painel de apostas -->
-        <PainelAposta
-          v-if="souPlateia"
-          :partida="partidaDestaque"
-          :jogador1="destJ1"
-          :jogador2="destJ2"
-          :apostas-abertas="apostasAbertas"
-          :minha-aposta="minhaAposta"
-          :saldo="minhaParticipacao?.moedas ?? 0"
-          :pote1="poteJog1"
-          :pote2="poteJog2"
-          :n1="nApostadores1"
-          :n2="nApostadores2"
-          @apostar="fazerAposta"
-        />
+        <!-- Plateia → painel de apostas + bracket abaixo -->
+        <template v-if="souPlateia">
+          <PainelAposta
+            :partida="partidaDestaque"
+            :jogador1="destJ1"
+            :jogador2="destJ2"
+            :apostas-abertas="apostasAbertas"
+            :minha-aposta="minhaAposta"
+            :saldo="minhaParticipacao?.moedas ?? 0"
+            :pote1="poteJog1"
+            :pote2="poteJog2"
+            :n1="nApostadores1"
+            :n2="nApostadores2"
+            @apostar="fazerAposta"
+          />
+          <!-- Bracket para a plateia acompanhar os confrontos -->
+          <div class="mt-6">
+            <p class="text-overline text-medium-emphasis mb-3">
+              <v-icon size="14" start>mdi-tournament</v-icon>Confrontos desta ronda
+            </p>
+            <TorneioBracket
+              :torneio-id="torneioId"
+              :partidas="partidasRonda"
+              :fase-atual="faseAtual"
+              :jogo-atual="jogoAtual"
+              :perfil-id="perfil?.id"
+              :is-admin="false"
+              :em-jogo="emJogo"
+              :destaque-id="partidaDestaque?.id ?? null"
+              :bloquear-troca="false"
+              :perfil-de="perfilDe"
+            />
+          </div>
+        </template>
 
         <!-- Tenho partida nesta ronda -->
         <template v-else-if="minhaPartidaDestaRonda">
@@ -687,6 +707,25 @@ async function confirmarIniciar() {
           </v-card-text>
         </v-card>
       </div>
+
+        <!-- Fallback SSR: mostra o bracket enquanto o JS não hidrata -->
+        <template #fallback>
+          <div class="py-4">
+            <TorneioBracket
+              :torneio-id="torneioId"
+              :partidas="partidasRonda"
+              :fase-atual="faseAtual"
+              :jogo-atual="jogoAtual"
+              :perfil-id="undefined"
+              :is-admin="false"
+              :em-jogo="emJogo"
+              :destaque-id="partidaDestaque?.id ?? null"
+              :bloquear-troca="false"
+              :perfil-de="perfilDe"
+            />
+          </div>
+        </template>
+      </ClientOnly>
 
       <!-- Fallback (não-admin sem participação): bracket normal -->
       <TorneioBracket

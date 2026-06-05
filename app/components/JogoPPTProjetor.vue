@@ -65,12 +65,13 @@ function lançarConfetti() {
   }, 1400)
 }
 
-watch(vitoriaVisivel, (vis, antes) => {
-  if (vis && !antes) lançarConfetti()
+// Dispara logo que o servidor apura o vencedor (início da revelação de 5s),
+// igual ao ecrã do jogador — não espera pelo fim da revelação.
+watch(destTerminada, (v, old) => {
+  if (v && !old) lançarConfetti()
 })
 
-// Cobre o caso de já estar terminado ao montar (ex: refresh de página)
-onMounted(() => { if (vitoriaVisivel.value) lançarConfetti() })
+onMounted(() => { if (destTerminada.value) lançarConfetti() })
 </script>
 
 <template>
