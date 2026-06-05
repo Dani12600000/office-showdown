@@ -15,10 +15,19 @@ export default defineNuxtPlugin(async () => {
     perfil.value = (data as Utilizador) ?? null
   }
 
+  const validarSessao = async (userId: string) => {
+    await carregarPerfil(userId)
+    if (!perfil.value) {
+      // Sessão existe mas o perfil foi apagado — forçar logout
+      await supabase.auth.signOut()
+      await navigateTo('/login')
+    }
+  }
+
   // Sessão existente (refresh de página)
   const { data: { user } } = await supabase.auth.getUser()
   if (user) {
-    await carregarPerfil(user.id)
+    await validarSessao(user.id)
   }
 
   // Mudanças futuras de estado (login, logout, refresh de token)
@@ -26,7 +35,7 @@ export default defineNuxtPlugin(async () => {
     if (session?.user) {
       // Só recarrega se mudar de utilizador ou perfil estiver em falta
       if (!perfil.value || perfil.value.id !== session.user.id) {
-        await carregarPerfil(session.user.id)
+        await validarSessao(session.user.id)
       }
     } else {
       perfil.value = null
