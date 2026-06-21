@@ -13,7 +13,7 @@ function jogoDoTorneio(t: TorneioCard) {
 }
 
 const { perfil, isAdmin } = useAuth()
-const { torneios, loading, carregarTorneios, inscreverMe, apagarTorneio, JOGO_POR_RONDA, NOME_RONDA } = useTorneios()
+const { torneios, loading, carregarTorneios, inscreverMe, apagarTorneio, JOGO_POR_RONDA, nomeRonda } = useTorneios()
 const { criarTorneio } = useLobby('')
 
 // ---- Apagar torneio (admin) ----
@@ -239,7 +239,7 @@ const participacaoConfig = {
               <v-col cols="6">
                 <div class="text-caption text-medium-emphasis">Fase</div>
                 <div class="text-body-2 font-weight-medium mt-1">
-                  {{ NOME_RONDA[torneio.ronda_atual as NumeroRonda] }}
+                  {{ nomeRonda(torneio.ronda_atual, torneio.max_jogadores) }}
                 </div>
               </v-col>
 

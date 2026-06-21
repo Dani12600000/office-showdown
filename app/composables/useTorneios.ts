@@ -1,5 +1,5 @@
 import type { Torneio, TorneioParticipante, StatusInscricao } from '~/types/torneio'
-import { JOGO_POR_RONDA, NOME_RONDA } from '~/types/torneio'
+import { JOGO_POR_RONDA, nomeRonda } from '~/types/torneio'
 import type { Database } from '~/types/database.types'
 
 export interface TorneioCard extends Torneio {
@@ -89,6 +89,6 @@ export const useTorneios = () => {
     inscreverMe,
     apagarTorneio,
     JOGO_POR_RONDA,
-    NOME_RONDA,
+    nomeRonda,
   }
 }

@@ -82,9 +82,20 @@ export const JOGADORES_POR_RONDA: Record<NumeroRonda, number> = {
   4: 2,
 } as const
 
-export const NOME_RONDA: Record<NumeroRonda, string> = {
-  1: 'Oitavos de Final',
-  2: 'Quartos de Final',
-  3: 'Meias-Finais',
-  4: 'Grande Final',
-} as const
+// Nome da fase consoante quantos jogadores a disputam (independente do índice
+// da ronda). É isto que determina o nome, não a posição: uma ronda com 8
+// jogadores são sempre "Quartos de Final", seja ela a ronda 1 (max 8) ou a
+// ronda 2 (max 16).
+export const NOME_FASE_POR_JOGADORES: Record<number, string> = {
+  16: 'Oitavos de Final',
+  8: 'Quartos de Final',
+  4: 'Meias-Finais',
+  2: 'Grande Final',
+}
+
+// Nome da ronda `ronda` (1-based) num torneio com `maxJogadores` no total.
+// Ex.: max=8 → R1 'Quartos de Final', R2 'Meias-Finais', R3 'Grande Final'.
+export function nomeRonda(ronda: number, maxJogadores = 16): string {
+  const jogadoresNaRonda = Math.round(maxJogadores / Math.pow(2, ronda - 1))
+  return NOME_FASE_POR_JOGADORES[jogadoresNaRonda] ?? `Ronda ${ronda}`
+}

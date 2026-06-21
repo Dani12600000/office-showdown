@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { JOGOS_CATALOGO, NOME_RONDA, type JogoTipo, type NumeroRonda } from '~/types/torneio'
+import { JOGOS_CATALOGO, nomeRonda, type JogoTipo } from '~/types/torneio'
 
 definePageMeta({ middleware: 'auth' })
 
@@ -453,7 +453,7 @@ async function confirmarIniciar() {
                       :model-value="jogosRonda[String(r)] ?? 'PPT'"
                       :items="itensJogos"
                       item-props
-                      :label="`Ronda ${r} · ${NOME_RONDA[r as NumeroRonda] ?? ''}`"
+                      :label="`Ronda ${r} · ${nomeRonda(r, maxJogadores)}`"
                       variant="outlined"
                       density="compact"
                       hide-details

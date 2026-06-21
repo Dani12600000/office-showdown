@@ -1,6 +1,6 @@
-import type { Torneio, StatusInscricao, NumeroRonda, JogoTipo, Aposta } from '~/types/torneio'
+import type { Torneio, StatusInscricao, JogoTipo, Aposta } from '~/types/torneio'
 import type { Utilizador } from '~/types/torneio'
-import { NOME_RONDA, JOGOS_CATALOGO, JOGOS_RONDA_DEFAULT } from '~/types/torneio'
+import { nomeRonda, JOGOS_CATALOGO, JOGOS_RONDA_DEFAULT } from '~/types/torneio'
 import type { Database } from '~/types/database.types'
 
 export interface ParticipanteLobby {
@@ -125,7 +125,7 @@ export const useLobby = (torneioId: string) => {
     torneio.value ? JOGOS_CATALOGO[jogoAtualTipo.value].nome : ''
   )
   const faseAtual = computed(() =>
-    torneio.value ? NOME_RONDA[torneio.value.ronda_atual as NumeroRonda] : ''
+    torneio.value ? nomeRonda(torneio.value.ronda_atual, maxJogadores.value) : ''
   )
 
   // ---- Bracket / partidas ----
