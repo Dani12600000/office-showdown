@@ -86,50 +86,37 @@ function souEu(id: string | null) {
               </div>
             </div>
 
-            <!-- Ação — só disponível depois de "Começar jogos" (emJogo) -->
+            <!-- Ação — só disponível depois de "Começar jogos" (emJogo).
+                 Jogadores reais NÃO têm botão para entrar/assistir: são levados
+                 ao palco pelo admin (auto-navegação). Só o admin tem controlos;
+                 toda a gente vê apenas o estado "Terminada". -->
             <div class="mt-3">
               <template v-if="emJogo">
-                <v-btn
-                  v-if="p.status === 'A_JOGAR' && (souEu(p.jogador1_id) || souEu(p.jogador2_id))"
-                  color="secondary" block rounded="lg"
-                  prepend-icon="mdi-play"
-                  :to="`/torneio/${torneioId}/partida/${p.id}`"
-                >
-                  Jogar
-                </v-btn>
-                <v-btn
-                  v-else-if="p.status === 'A_JOGAR' && isAdmin"
-                  color="secondary" variant="tonal" block rounded="lg"
-                  prepend-icon="mdi-gamepad-variant"
-                  :to="`/torneio/${torneioId}/partida/${p.id}`"
-                >
-                  Controlar
-                </v-btn>
-                <v-btn
-                  v-else-if="p.status === 'A_JOGAR'"
-                  variant="tonal" block rounded="lg"
-                  prepend-icon="mdi-eye-outline"
-                  :to="`/torneio/${torneioId}/partida/${p.id}`"
-                >
-                  Assistir
-                </v-btn>
-                <div v-else class="text-center text-caption text-success">
+                <template v-if="isAdmin && p.status === 'A_JOGAR'">
+                  <v-btn
+                    color="secondary" variant="tonal" block rounded="lg"
+                    prepend-icon="mdi-gamepad-variant"
+                    :to="`/torneio/${torneioId}/partida/${p.id}`"
+                  >
+                    Controlar
+                  </v-btn>
+                  <!-- Apresentar no projetor -->
+                  <v-btn
+                    :variant="destaqueId === p.id ? 'flat' : 'text'"
+                    :color="destaqueId === p.id ? 'accent' : 'primary'"
+                    size="small" block rounded="lg" class="mt-2"
+                    :prepend-icon="destaqueId === p.id ? 'mdi-television-shimmer' : 'mdi-television-play'"
+                    :disabled="bloquearTroca && destaqueId !== p.id"
+                    :title="bloquearTroca && destaqueId !== p.id ? 'Termina a partida em palco primeiro' : ''"
+                    @click="emit('destacar', p.id)"
+                  >
+                    {{ destaqueId === p.id ? 'No projetor' : 'Apresentar' }}
+                  </v-btn>
+                </template>
+
+                <div v-else-if="p.status === 'TERMINADO'" class="text-center text-caption text-success">
                   <v-icon size="14" start>mdi-check-circle</v-icon>Terminada
                 </div>
-
-                <!-- Apresentar no projetor (admin) -->
-                <v-btn
-                  v-if="isAdmin && p.status === 'A_JOGAR'"
-                  :variant="destaqueId === p.id ? 'flat' : 'text'"
-                  :color="destaqueId === p.id ? 'accent' : 'primary'"
-                  size="small" block rounded="lg" class="mt-2"
-                  :prepend-icon="destaqueId === p.id ? 'mdi-television-shimmer' : 'mdi-television-play'"
-                  :disabled="bloquearTroca && destaqueId !== p.id"
-                  :title="bloquearTroca && destaqueId !== p.id ? 'Termina a partida em palco primeiro' : ''"
-                  @click="emit('destacar', p.id)"
-                >
-                  {{ destaqueId === p.id ? 'No projetor' : 'Apresentar' }}
-                </v-btn>
               </template>
 
               <!-- Fase ARVORE: confrontos revelados mas jogos ainda não começaram -->

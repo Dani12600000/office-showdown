@@ -14,6 +14,7 @@ const {
   jogosRonda, jogoTipoDe, numRondas,
   partidasRonda, minhaPartida, rondaTerminada, perfilDe,
   partidaDestaque, destacarPartida, destacarAleatoria,
+  apostas,
   apostasAbertas, poteJog1, poteJog2, nApostadores1, nApostadores2, minhaAposta, apostar, fecharApostas,
   melhorApostador,
   carregarLobby,
@@ -261,6 +262,20 @@ const podeApostar = computed(() =>
 const minhaPartidaAtivaEstaRonda = computed(() =>
   minhaPartidaDestaRonda.value?.status === 'A_JOGAR'
 )
+// Resultado das MINHAS apostas no torneio (para mostrar no fim)
+const minhasApostas = computed(() =>
+  apostas.value.filter(a => a.apostador_id === perfil.value?.id)
+)
+const meuResultadoApostas = computed(() => {
+  if (!minhasApostas.value.length) return null
+  const lucro = minhasApostas.value.reduce((s, a) => s + a.ganho, 0)
+  return {
+    lucro,
+    saldo: minhaParticipacao.value?.moedas ?? 0,
+    n: minhasApostas.value.length,
+  }
+})
+
 // Nota de contexto para quem aposta sem ser plateia (eliminado / passou de ronda)
 const notaApostador = computed(() => {
   if (perdi.value || fuiEliminadoAntes.value)
@@ -665,6 +680,25 @@ async function confirmarIniciar() {
           </v-card-text>
         </v-card>
 
+        <!-- As minhas apostas (resultado final) -->
+        <v-card v-if="meuResultadoApostas" rounded="xl" variant="tonal" class="mx-auto mt-4" max-width="360"
+          :color="meuResultadoApostas.lucro > 0 ? 'success' : (meuResultadoApostas.lucro < 0 ? 'error' : undefined)">
+          <v-card-text class="d-flex align-center justify-space-between gap-3 pa-4">
+            <div class="text-left">
+              <p class="text-overline text-medium-emphasis mb-0">As tuas apostas</p>
+              <p class="text-h6 font-weight-black mb-0">
+                <span v-if="meuResultadoApostas.lucro > 0">Lucraste +{{ meuResultadoApostas.lucro }} 🪙</span>
+                <span v-else-if="meuResultadoApostas.lucro < 0">Perdeste {{ -meuResultadoApostas.lucro }} 🪙</span>
+                <span v-else>Ficaste empatado</span>
+              </p>
+              <p class="text-caption text-medium-emphasis mb-0">{{ meuResultadoApostas.n }} apostas · saldo final {{ meuResultadoApostas.saldo }} 🪙</p>
+            </div>
+            <v-icon size="40" :color="meuResultadoApostas.lucro >= 0 ? 'success' : 'error'">
+              {{ meuResultadoApostas.lucro > 0 ? 'mdi-trending-up' : (meuResultadoApostas.lucro < 0 ? 'mdi-trending-down' : 'mdi-trending-neutral') }}
+            </v-icon>
+          </v-card-text>
+        </v-card>
+
         <!-- Partilha -->
         <div class="mt-8">
           <p class="text-body-2 text-medium-emphasis mb-3">Partilha o resultado</p>
@@ -787,6 +821,13 @@ async function confirmarIniciar() {
           <v-alert v-else-if="minhaPartidaAEsperar" type="info" variant="tonal" icon="mdi-television-off" rounded="lg">
             <strong>Aguarda a tua vez no palco.</strong> O jogo começa quando o apresentador trouxer a tua partida para o projetor.
           </v-alert>
+
+          <!-- Carteira: saldo + últimas apostas, enquanto esperas -->
+          <CarteiraApostas
+            :saldo="minhaParticipacao?.moedas ?? 0"
+            :apostas="minhasApostas"
+            :perfil-de="perfilDe"
+          />
         </template>
 
         <!-- C) Não tenho nada para jogar agora (eliminado / passei de ronda / plateia) → aposto na mesma -->
