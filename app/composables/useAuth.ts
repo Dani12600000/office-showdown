@@ -124,6 +124,20 @@ export const useAuth = () => {
     if (error) throw new Error(error.message)
   }
 
+  // Alterar a password já autenticado (dentro do perfil). Reautentica com a
+  // password atual para confirmar a identidade antes de a trocar.
+  const alterarPasswordAutenticado = async (passwordAtual: string, novaPassword: string): Promise<void> => {
+    const { data: userData } = await supabase.auth.getUser()
+    const email = userData.user?.email
+    if (!email) throw new Error('Sessão inválida. Faz login novamente.')
+
+    const { error: authError } = await supabase.auth.signInWithPassword({ email, password: passwordAtual })
+    if (authError) throw new Error('A password atual está incorreta.')
+
+    const { error } = await supabase.auth.updateUser({ password: novaPassword })
+    if (error) throw new Error(error.message)
+  }
+
   const alterarEmail = async (novoEmail: string): Promise<void> => {
     const { error } = await supabase.auth.updateUser({
       email: novoEmail.trim().toLowerCase(),
@@ -148,6 +162,7 @@ export const useAuth = () => {
     logout,
     pedirResetPassword,
     atualizarPassword,
+    alterarPasswordAutenticado,
     alterarEmail,
     carregarPerfil,
     atualizarPerfil,

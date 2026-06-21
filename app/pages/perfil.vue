@@ -1,7 +1,7 @@
 <script setup lang="ts">
 definePageMeta({ middleware: 'auth' })
 
-const { perfil, uploadAvatar, atualizarPerfil, alterarEmail } = useAuth()
+const { perfil, uploadAvatar, atualizarPerfil, alterarEmail, alterarPasswordAutenticado } = useAuth()
 const supabase = useSupabaseClient()
 
 // ---- Avatar ----
@@ -97,6 +97,47 @@ async function submeterEmail() {
     erroEmail.value = e.message
   } finally {
     aGuardarEmail.value = false
+  }
+}
+
+// ---- Alterar password ----
+const dialogPassword = ref(false)
+const passwordAtual = ref('')
+const novaPassword = ref('')
+const novaPasswordConfirm = ref('')
+const mostrarPassword = ref(false)
+const aGuardarPassword = ref(false)
+const sucessoPassword = ref(false)
+const erroPassword = ref('')
+
+const passwordsCoincidem = computed(() =>
+  !novaPasswordConfirm.value || novaPassword.value === novaPasswordConfirm.value
+)
+const passwordFormValido = computed(() =>
+  !!passwordAtual.value && novaPassword.value.length >= 6 && passwordsCoincidem.value
+)
+
+function abrirDialogPassword() {
+  passwordAtual.value = ''
+  novaPassword.value = ''
+  novaPasswordConfirm.value = ''
+  erroPassword.value = ''
+  dialogPassword.value = true
+}
+
+async function submeterPassword() {
+  if (!passwordFormValido.value) return
+  aGuardarPassword.value = true
+  erroPassword.value = ''
+  try {
+    await alterarPasswordAutenticado(passwordAtual.value, novaPassword.value)
+    dialogPassword.value = false
+    sucessoPassword.value = true
+    setTimeout(() => { sucessoPassword.value = false }, 4000)
+  } catch (e: any) {
+    erroPassword.value = e.message
+  } finally {
+    aGuardarPassword.value = false
   }
 }
 </script>
@@ -248,10 +289,21 @@ async function submeterEmail() {
               <p class="text-body-2 text-medium-emphasis mb-0">Password</p>
               <p class="text-body-1 font-weight-medium">••••••••</p>
             </div>
-            <v-btn variant="tonal" size="small" prepend-icon="mdi-lock-reset" to="/recuperar-password">
+            <v-btn variant="tonal" size="small" prepend-icon="mdi-lock-reset" @click="abrirDialogPassword">
               Alterar
             </v-btn>
           </div>
+
+          <v-alert
+            v-if="sucessoPassword"
+            type="success"
+            variant="tonal"
+            density="compact"
+            class="mt-3"
+            icon="mdi-lock-check-outline"
+          >
+            Password alterada com sucesso.
+          </v-alert>
 
         </v-card-text>
       </v-card>
@@ -291,6 +343,66 @@ async function submeterEmail() {
           @click="submeterEmail"
         >
           Confirmar
+        </v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
+
+  <!-- Dialog alterar password -->
+  <v-dialog v-model="dialogPassword" max-width="420">
+    <v-card rounded="xl">
+      <v-card-title class="pa-6 pb-2 text-h6 font-weight-bold">Alterar password</v-card-title>
+      <v-card-text class="pa-6 pt-2">
+        <p class="text-body-2 text-medium-emphasis mb-4">
+          Confirma a password atual e escolhe uma nova (mínimo 6 caracteres).
+        </p>
+        <v-form @submit.prevent="submeterPassword">
+          <v-text-field
+            v-model="passwordAtual"
+            label="Password atual"
+            prepend-inner-icon="mdi-lock-outline"
+            :type="mostrarPassword ? 'text' : 'password'"
+            :append-inner-icon="mostrarPassword ? 'mdi-eye-off' : 'mdi-eye'"
+            variant="outlined"
+            class="mb-3"
+            autocomplete="current-password"
+            @click:append-inner="mostrarPassword = !mostrarPassword"
+          />
+          <v-text-field
+            v-model="novaPassword"
+            label="Nova password"
+            prepend-inner-icon="mdi-lock-reset"
+            :type="mostrarPassword ? 'text' : 'password'"
+            variant="outlined"
+            class="mb-3"
+            :rules="[v => !v || v.length >= 6 || 'Mínimo 6 caracteres']"
+            autocomplete="new-password"
+          />
+          <v-text-field
+            v-model="novaPasswordConfirm"
+            label="Confirmar nova password"
+            prepend-inner-icon="mdi-lock-check-outline"
+            :type="mostrarPassword ? 'text' : 'password'"
+            variant="outlined"
+            :error-messages="!passwordsCoincidem ? 'As passwords não coincidem' : ''"
+            autocomplete="new-password"
+          />
+          <v-alert v-if="erroPassword" type="error" variant="tonal" density="compact" class="mt-2">
+            {{ erroPassword }}
+          </v-alert>
+        </v-form>
+      </v-card-text>
+      <v-card-actions class="pa-6 pt-0 gap-2">
+        <v-spacer />
+        <v-btn variant="text" :disabled="aGuardarPassword" @click="dialogPassword = false">Cancelar</v-btn>
+        <v-btn
+          color="primary"
+          variant="flat"
+          :loading="aGuardarPassword"
+          :disabled="!passwordFormValido"
+          @click="submeterPassword"
+        >
+          Guardar
         </v-btn>
       </v-card-actions>
     </v-card>
