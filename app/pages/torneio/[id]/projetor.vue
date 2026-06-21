@@ -95,9 +95,9 @@ const cenaLoop = computed<LoopNome>(() => {
 watch(cenaLoop, (l) => tocarLoop(l), { immediate: true })
 
 // Stingers (one-shots)
-// Nota: o som de início (comecar / din-din-din) NÃO toca aqui — toca no
-// "LUTAR!" da contagem (@lutar de <ContagemInicio>), já depois das apostas.
-watch(introPartidaVisivel, (v, o) => { if (v && !o) tocarStinger('intro-vs') })
+// Apresentar a partida (abrem as apostas) → som de início das apostas (comecar.mp3).
+// O din-din-din (intro-vs.mp3) toca só no "LUTAR!", depois do 3...2...1 (ver <ContagemInicio>).
+watch(introPartidaVisivel, (v, o) => { if (v && !o) tocarStinger('comecar') })
 // Vitória da partida (status passa a TERMINADO)
 watch(() => dest.value?.status, (s, o) => {
   if (s === 'TERMINADO' && o === 'A_JOGAR') tocarStinger('vitoria')
@@ -151,7 +151,7 @@ watch(() => dest.value?.revelar_ate, (r, o) => {
     />
     <ContagemInicio
       :visivel="contagemInicioVisivel"
-      @lutar="tocarStinger('comecar')"
+      @lutar="tocarStinger('intro-vs')"
       @done="contagemInicioVisivel = false"
     />
 
