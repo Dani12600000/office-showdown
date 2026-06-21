@@ -83,7 +83,7 @@ const textoUltimo = computed(() => {
       <v-icon size="80" color="primary" class="mb-4">mdi-map-marker-radius</v-icon>
       <h2 class="text-h3 font-weight-black mb-2">Os capitães estão a posicionar a frota…</h2>
       <p class="text-h6 text-medium-emphasis mb-8">Couraçado · Submarino · Lancha</p>
-      <div class="d-flex justify-center gap-10">
+      <div class="capitaes">
         <div class="text-center">
           <v-avatar size="120" class="ring-blue mb-3">
             <v-img v-if="j1?.avatar_url" :src="j1.avatar_url" cover />
@@ -208,6 +208,11 @@ const textoUltimo = computed(() => {
   justify-content: center;
   text-align: center;
   min-height: calc(100vh - 240px);
+}
+.capitaes {
+  display: flex;
+  justify-content: center;
+  gap: clamp(64px, 12vw, 200px);
 }
 .arena {
   display: flex;
