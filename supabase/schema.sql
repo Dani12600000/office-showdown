@@ -293,7 +293,8 @@ begin
       coalesce(v_e->'historico','[]'::jsonb) ||
       jsonb_build_array(jsonb_build_object('e1', v_e1, 'e2', v_e2, 'vencedor', v_venc)));
 
-    -- 5 segundos de revelação em qualquer caso (inclui o ponto final)
+    -- Revelação: ponto final 5s; ronda intermédia 6,5s (dá tempo ao rufar de
+    -- tambor do projetor acabar antes de mostrar a jogada).
     if v_p1 >= 2 then
       update public.partidas set estado=v_e, vencedor_id=jogador1_id, status='TERMINADO',
         revelar_ate = now() + interval '5 seconds' where id=p_partida_id; return;
@@ -301,7 +302,7 @@ begin
       update public.partidas set estado=v_e, vencedor_id=jogador2_id, status='TERMINADO',
         revelar_ate = now() + interval '5 seconds' where id=p_partida_id; return;
     end if;
-    update public.partidas set estado=v_e, revelar_ate = now() + interval '5 seconds' where id=p_partida_id; return;
+    update public.partidas set estado=v_e, revelar_ate = now() + interval '6500 milliseconds' where id=p_partida_id; return;
   end if;
 
   update public.partidas set estado = v_e where id = p_partida_id;

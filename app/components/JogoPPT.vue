@@ -137,7 +137,7 @@ const torneioId = useRoute().params.id as string
       <!-- Resultado da última ronda -->
       <v-expand-transition>
         <div v-if="resultadoUltima" class="text-center mb-6">
-          <div class="d-flex align-center justify-center gap-6 mb-2">
+          <div class="d-flex align-center justify-center ga-6 mb-2">
             <div class="emoji-reveal text-blue">{{ emojiDe(ultimaJogada.e1) }}</div>
             <span class="text-medium-emphasis">vs</span>
             <div class="emoji-reveal text-red">{{ emojiDe(ultimaJogada.e2) }}</div>
@@ -175,14 +175,14 @@ const torneioId = useRoute().params.id as string
           </span>
         </div>
 
-        <div class="d-flex flex-column gap-5">
+        <div class="d-flex flex-column ga-5">
           <v-card
             v-for="s in slotsControlo" :key="'ctl-' + s.cor"
             rounded="xl" elevation="0" class="slot-card" :class="`slot-card--${s.cor}`"
           >
             <v-card-text class="pa-4">
-              <div class="d-flex align-center gap-2 mb-3">
-                <v-avatar size="28" :class="s.cor === 'blue' ? 'ring-blue' : 'ring-red'">
+              <div class="d-flex align-center ga-3 mb-3">
+                <v-avatar size="28" class="flex-shrink-0" :class="s.cor === 'blue' ? 'ring-blue' : 'ring-red'">
                   <v-img v-if="s.jogador?.avatar_url" :src="s.jogador.avatar_url" cover />
                   <span v-else class="text-caption font-weight-black" :class="`text-${s.cor}`">{{ s.jogador?.name?.charAt(0).toUpperCase() }}</span>
                 </v-avatar>
@@ -197,7 +197,7 @@ const torneioId = useRoute().params.id as string
                 <p class="text-caption text-medium-emphasis mt-1">Escolha feita — à espera da outra jogada…</p>
               </div>
 
-              <div v-else class="d-flex justify-center gap-3 flex-wrap">
+              <div v-else class="d-flex justify-center ga-3 flex-wrap">
                 <v-card
                   v-for="e in escolhas" :key="e.valor"
                   rounded="lg" elevation="0"

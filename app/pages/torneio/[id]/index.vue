@@ -830,23 +830,16 @@ async function confirmarIniciar() {
           />
         </template>
 
-        <!-- C) Não tenho nada para jogar agora (eliminado / passei de ronda / plateia) → aposto na mesma -->
+        <!-- C) Não tenho nada para jogar agora (eliminado / passei de ronda / plateia)
+             → mostro a carteira (saldo + últimas apostas) enquanto espero o próximo confronto -->
         <template v-else>
           <v-alert v-if="notaApostador" :type="notaApostador.cor" variant="tonal" density="comfortable" rounded="lg" class="mb-3">
             {{ notaApostador.txt }}
           </v-alert>
-          <PainelAposta
-            :partida="partidaDestaque"
-            :jogador1="destJ1"
-            :jogador2="destJ2"
-            :apostas-abertas="apostasAbertas"
-            :minha-aposta="minhaAposta"
+          <CarteiraApostas
             :saldo="minhaParticipacao?.moedas ?? 0"
-            :pote1="poteJog1"
-            :pote2="poteJog2"
-            :n1="nApostadores1"
-            :n2="nApostadores2"
-            @apostar="fazerAposta"
+            :apostas="minhasApostas"
+            :perfil-de="perfilDe"
           />
           <div class="mt-6">
             <p class="text-overline text-medium-emphasis mb-3">

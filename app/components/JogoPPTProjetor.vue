@@ -31,11 +31,12 @@ const revelando = computed(() => {
 const vitoriaVisivel = computed(() => destTerminada.value && !revelando.value)
 
 // ---- Suspense do tambor (só no projetor) ----
-// O revelacao.mp3 é um rufar de tambor (~4s). Durante a primeira parte da
-// revelação seguramos as mãos (❔) e o placar; só depois mostramos o resultado,
-// para o resultado "bater" ao ritmo do tambor em vez de aparecer logo.
+// O revelacao.mp3 é um rufar de tambor (~4,15s). Seguramos as mãos (❔) e o
+// placar durante todo o tambor e só revelamos o resultado QUANDO o tambor acaba
+// (~4,3s), em vez de aparecer logo. A janela de revelação no servidor é 6,5s,
+// o que dá ~2,2s para mostrar o resultado depois do tambor.
 // Aplica-se só às rondas NÃO decisivas (a decisiva tem confetti imediato).
-const SUSPENSE_MS = 3000
+const SUSPENSE_MS = 4300
 const suspense = ref(false)
 let suspTimer: ReturnType<typeof setTimeout> | null = null
 watch(() => dest.value?.revelar_ate, (r, o) => {
