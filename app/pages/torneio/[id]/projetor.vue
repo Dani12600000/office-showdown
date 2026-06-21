@@ -70,6 +70,13 @@ watch(() => dest.value?.id, (newId, oldId) => {
   if (newId && newId !== oldId) introPartidaVisivel.value = true
 })
 
+// 3) Apostas FECHAM (com partida no palco) → arranque real do jogo:
+//    contagem 3...2...1 → LUTAR! por cima do tabuleiro que acabou de surgir.
+const contagemInicioVisivel = ref(false)
+watch(apostasAbertas, (aberto, antes) => {
+  if (!aberto && antes && dest.value) contagemInicioVisivel.value = true
+})
+
 // ---- Som do projetor ----
 const { ativo: somAtivo, mudo, ativar: ativarSom, alternarMudo, tocarLoop, tocarStinger } = useProjetorAudio()
 
@@ -88,7 +95,8 @@ const cenaLoop = computed<LoopNome>(() => {
 watch(cenaLoop, (l) => tocarLoop(l), { immediate: true })
 
 // Stingers (one-shots)
-watch(inicioJogosVisivel,  (v, o) => { if (v && !o) tocarStinger('comecar') })
+// Nota: o som de início (comecar / din-din-din) NÃO toca aqui — toca no
+// "LUTAR!" da contagem (@lutar de <ContagemInicio>), já depois das apostas.
 watch(introPartidaVisivel, (v, o) => { if (v && !o) tocarStinger('intro-vs') })
 // Vitória da partida (status passa a TERMINADO)
 watch(() => dest.value?.status, (s, o) => {
@@ -140,6 +148,11 @@ watch(() => dest.value?.revelar_ate, (r, o) => {
       :jogador2="j2"
       :visivel="introPartidaVisivel"
       @done="introPartidaVisivel = false"
+    />
+    <ContagemInicio
+      :visivel="contagemInicioVisivel"
+      @lutar="tocarStinger('comecar')"
+      @done="contagemInicioVisivel = false"
     />
 
     <!-- ===== CABEÇALHO ===== -->

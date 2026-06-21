@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import type { Utilizador } from '~/types/torneio'
 
+// Apresentação dos lutadores quando a partida é posta em destaque.
+// Leva ao ecrã de APOSTAS — por isso NÃO tem contagem nem "LUTAR!"
+// (isso passou para a ContagemInicio, no arranque real do jogo).
 const props = defineProps<{
   jogador1: Utilizador | null
   jogador2: Utilizador | null
@@ -11,8 +14,6 @@ const emit = defineEmits<{ done: [] }>()
 
 const jogadoresVisiveis = ref(false)
 const vsVisivel         = ref(false)
-const contagem          = ref<number | null>(null)
-const fight             = ref(false)
 const aFadeOut          = ref(false)
 
 function delay(ms: number) {
@@ -24,26 +25,15 @@ watch(() => props.visivel, async (v) => {
 
   jogadoresVisiveis.value = false
   vsVisivel.value         = false
-  contagem.value          = null
-  fight.value             = false
   aFadeOut.value          = false
 
   await delay(120)
   jogadoresVisiveis.value = true
 
-  await delay(950)
+  await delay(900)
   vsVisivel.value = true
 
-  await delay(800)
-  for (const n of [3, 2, 1]) {
-    contagem.value = n
-    await delay(900)
-  }
-
-  contagem.value = null
-  fight.value = true
-  await delay(700)
-
+  await delay(1400)
   aFadeOut.value = true
   await delay(450)
   emit('done')
@@ -93,18 +83,6 @@ watch(() => props.visivel, async (v) => {
           </div>
 
         </div>
-
-        <!-- Contagem -->
-        <Transition name="count-pop">
-          <div v-if="contagem !== null" :key="contagem" class="intro-countdown">
-            {{ contagem }}
-          </div>
-        </Transition>
-
-        <!-- LUTAR -->
-        <Transition name="fight-pop">
-          <div v-if="fight" class="intro-fight">LUTAR!</div>
-        </Transition>
 
       </div>
     </Transition>
@@ -233,55 +211,6 @@ watch(() => props.visivel, async (v) => {
 @keyframes vs-pulse {
   from { text-shadow: 0 0 20px #FFEA00, 0 0 40px rgba(255,234,0,0.5); }
   to   { text-shadow: 0 0 36px #FFEA00, 0 0 72px rgba(255,234,0,0.8); }
-}
-
-/* ── Contagem ────────────────────────────────────────────── */
-.intro-countdown {
-  position: absolute;
-  font-size: clamp(96px, 20vw, 200px);
-  font-weight: 900;
-  color: #fff;
-  text-shadow: 0 0 40px rgba(0,229,255,0.8), 0 4px 24px rgba(0,0,0,0.8);
-  line-height: 1;
-  pointer-events: none;
-  user-select: none;
-}
-
-.count-pop-enter-active { animation: count-in 0.25s cubic-bezier(0.22, 1, 0.36, 1); }
-.count-pop-leave-active { animation: count-out 0.18s ease-in; }
-@keyframes count-in {
-  from { transform: scale(2); opacity: 0; }
-  to   { transform: scale(1); opacity: 1; }
-}
-@keyframes count-out {
-  from { transform: scale(1); opacity: 1; }
-  to   { transform: scale(0.6); opacity: 0; }
-}
-
-/* ── LUTAR ───────────────────────────────────────────────── */
-.intro-fight {
-  position: absolute;
-  font-size: clamp(52px, 12vw, 120px);
-  font-weight: 900;
-  color: #FFEA00;
-  text-shadow:
-    0 0 30px #FFEA00,
-    0 0 60px rgba(255,234,0,0.7),
-    0 4px 24px rgba(0,0,0,0.9);
-  letter-spacing: 6px;
-  pointer-events: none;
-  user-select: none;
-}
-
-.fight-pop-enter-active { animation: fight-in 0.35s cubic-bezier(0.22, 1, 0.36, 1); }
-.fight-pop-leave-active { animation: fight-out 0.3s ease-in; }
-@keyframes fight-in {
-  from { transform: scale(0.3) rotate(-6deg); opacity: 0; }
-  to   { transform: scale(1) rotate(0deg);    opacity: 1; }
-}
-@keyframes fight-out {
-  from { transform: scale(1);   opacity: 1; }
-  to   { transform: scale(1.3); opacity: 0; }
 }
 
 /* ── Transição do overlay inteiro ───────────────────────── */

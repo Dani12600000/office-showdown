@@ -30,6 +30,35 @@ const revelando = computed(() => {
 })
 const vitoriaVisivel = computed(() => destTerminada.value && !revelando.value)
 
+// ---- Suspense do tambor (só no projetor) ----
+// O revelacao.mp3 é um rufar de tambor (~4s). Durante a primeira parte da
+// revelação seguramos as mãos (❔) e o placar; só depois mostramos o resultado,
+// para o resultado "bater" ao ritmo do tambor em vez de aparecer logo.
+// Aplica-se só às rondas NÃO decisivas (a decisiva tem confetti imediato).
+const SUSPENSE_MS = 3000
+const suspense = ref(false)
+let suspTimer: ReturnType<typeof setTimeout> | null = null
+watch(() => dest.value?.revelar_ate, (r, o) => {
+  if (suspTimer) { clearTimeout(suspTimer); suspTimer = null }
+  if (r && r !== o && dest.value?.status === 'A_JOGAR') {
+    suspense.value = true
+    suspTimer = setTimeout(() => { suspense.value = false }, SUSPENSE_MS)
+  } else {
+    suspense.value = false
+  }
+})
+onUnmounted(() => { if (suspTimer) clearTimeout(suspTimer) })
+
+// Placar a mostrar: durante o suspense segura o valor ANTES desta ronda.
+const placar = computed(() => {
+  let p1 = pontos1.value, p2 = pontos2.value
+  if (revelando.value && suspense.value) {
+    if (ultima.value?.vencedor === j1.value?.id) p1 = Math.max(0, p1 - 1)
+    else if (ultima.value?.vencedor === j2.value?.id) p2 = Math.max(0, p2 - 1)
+  }
+  return { p1, p2 }
+})
+
 const escolhasMap: Record<string, string> = { pedra: '✊', papel: '✋', tesoura: '✌️' }
 const emoji = (v: string | null | undefined) => (v ? escolhasMap[v] : '❔')
 
@@ -91,9 +120,9 @@ onMounted(() => { if (destTerminada.value) lançarConfetti() })
 
       <div class="text-center">
         <div class="placar">
-          <span class="text-blue">{{ pontos1 }}</span>
+          <span class="text-blue">{{ placar.p1 }}</span>
           <span class="text-medium-emphasis mx-3">:</span>
-          <span class="text-red">{{ pontos2 }}</span>
+          <span class="text-red">{{ placar.p2 }}</span>
         </div>
         <v-chip v-if="!vitoriaVisivel" size="small" variant="tonal">Ronda {{ subRonda }} · à melhor de 3</v-chip>
         <v-chip v-else color="accent" size="large" class="font-weight-bold"><v-icon start>mdi-trophy</v-icon>{{ destVencedor?.name }} vence!</v-chip>
@@ -113,13 +142,18 @@ onMounted(() => { if (destTerminada.value) lançarConfetti() })
     </div>
 
     <v-expand-transition>
-      <div v-if="resultadoUltima && revelando" class="text-center reveal">
+      <div v-if="revelando" class="text-center reveal">
         <div class="d-flex align-center justify-center gap-10">
-          <div class="emoji text-blue">{{ emoji(ultima.e1) }}</div>
+          <div class="emoji text-blue" :class="{ 'suspense-shake': suspense }">{{ suspense ? '❔' : emoji(ultima?.e1) }}</div>
           <span class="text-h5 text-medium-emphasis">vs</span>
-          <div class="emoji text-red">{{ emoji(ultima.e2) }}</div>
+          <div class="emoji text-red" :class="{ 'suspense-shake': suspense }">{{ suspense ? '❔' : emoji(ultima?.e2) }}</div>
         </div>
-        <v-chip :color="resultadoUltima.cor" size="large" class="mt-4 font-weight-bold">{{ resultadoUltima.texto }}</v-chip>
+        <v-chip v-if="suspense" color="surface-variant" size="large" class="mt-4 font-weight-bold suspense-chip">
+          <v-icon start>mdi-drum</v-icon>Suspense…
+        </v-chip>
+        <v-chip v-else-if="resultadoUltima" :color="resultadoUltima.cor" size="large" class="mt-4 font-weight-bold">
+          {{ resultadoUltima.texto }}
+        </v-chip>
       </div>
     </v-expand-transition>
   </div>
@@ -146,6 +180,19 @@ onMounted(() => { if (destTerminada.value) lançarConfetti() })
 
 .reveal { margin-top: 2vh; }
 .emoji { font-size: 7rem; line-height: 1; }
+
+/* Suspense do tambor: mãos escondidas a abanar */
+.suspense-shake { animation: suspense-shake 0.45s ease-in-out infinite; }
+@keyframes suspense-shake {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  25%      { transform: translateY(-8px) rotate(-6deg); }
+  75%      { transform: translateY(-8px) rotate(6deg); }
+}
+.suspense-chip { animation: suspense-pulse 0.6s ease-in-out infinite alternate; }
+@keyframes suspense-pulse {
+  from { opacity: 0.55; }
+  to   { opacity: 1; }
+}
 
 .ring-blue { outline: 4px solid #00B0FF; outline-offset: 4px; background: rgba(0,176,255,0.15); box-shadow: 0 0 40px rgba(0,176,255,0.5); }
 .ring-red  { outline: 4px solid #FF1744; outline-offset: 4px; background: rgba(255,23,68,0.15); box-shadow: 0 0 40px rgba(255,23,68,0.5); }
