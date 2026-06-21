@@ -221,11 +221,7 @@ const perdi = computed(() =>
   minhaPartidaDestaRonda.value?.status === 'TERMINADO' &&
   minhaPartidaDestaRonda.value?.vencedor_id !== perfil.value?.id
 )
-const souPlateia = computed(() =>
-  minhaParticipacao.value?.status_inscricao === 'PLATEIA'
-)
-
-// ---- Apostas (plateia) ----
+// ---- Apostas ----
 const destJ1 = computed(() => perfilDe(partidaDestaque.value?.jogador1_id ?? null))
 const destJ2 = computed(() => perfilDe(partidaDestaque.value?.jogador2_id ?? null))
 
@@ -245,6 +241,34 @@ const fuiEliminadoAntes = computed(() =>
   minhaParticipacao.value?.status_inscricao === 'JOGADOR_CONFIRMADO' &&
   !minhaPartidaDestaRonda.value
 )
+
+// ---- Quem pode apostar ----
+// Sou um dos dois jogadores da partida em destaque?
+const souCompetidorEmDestaque = computed(() => {
+  const d = partidaDestaque.value
+  if (!d || !perfil.value) return false
+  return d.jogador1_id === perfil.value.id || d.jogador2_id === perfil.value.id
+})
+// Toda a gente que NÃO está a jogar a partida em palco pode apostar nela:
+// plateia, eliminados e quem espera a sua vez. Os dois em palco não.
+const podeApostar = computed(() =>
+  !isAdmin.value &&
+  !!minhaParticipacao.value &&
+  !!partidaDestaque.value &&
+  !souCompetidorEmDestaque.value
+)
+// Tenho uma partida por jogar nesta ronda (ainda não terminou)?
+const minhaPartidaAtivaEstaRonda = computed(() =>
+  minhaPartidaDestaRonda.value?.status === 'A_JOGAR'
+)
+// Nota de contexto para quem aposta sem ser plateia (eliminado / passou de ronda)
+const notaApostador = computed(() => {
+  if (perdi.value || fuiEliminadoAntes.value)
+    return { txt: 'Foste eliminado — mas a festa continua! Aposta nos confrontos. 🎉', cor: 'warning' as const }
+  if (ganhei.value)
+    return { txt: 'Passaste de ronda! Enquanto esperas, podes apostar. 🪙', cor: 'success' as const }
+  return null
+})
 
 // Todos os bots do lobby (para personificar a escolha jogar/plateia)
 const botsLobby = computed(() =>
@@ -680,8 +704,11 @@ async function confirmarIniciar() {
       <ClientOnly v-else-if="aJogar && !isAdmin && minhaParticipacao">
       <div class="py-4">
 
-        <!-- Plateia → painel de apostas + bracket abaixo -->
-        <template v-if="souPlateia">
+        <!-- A) Há uma partida no palco e não sou eu a jogar → TODA a gente aposta -->
+        <template v-if="podeApostar">
+          <v-alert v-if="notaApostador" :type="notaApostador.cor" variant="tonal" density="comfortable" rounded="lg" class="mb-3">
+            {{ notaApostador.txt }}
+          </v-alert>
           <PainelAposta
             :partida="partidaDestaque"
             :jogador1="destJ1"
@@ -695,7 +722,6 @@ async function confirmarIniciar() {
             :n2="nApostadores2"
             @apostar="fazerAposta"
           />
-          <!-- Bracket para a plateia acompanhar os confrontos -->
           <div class="mt-6">
             <p class="text-overline text-medium-emphasis mb-3">
               <v-icon size="14" start>mdi-tournament</v-icon>Confrontos desta ronda
@@ -715,8 +741,8 @@ async function confirmarIniciar() {
           </div>
         </template>
 
-        <!-- Tenho partida nesta ronda -->
-        <template v-else-if="minhaPartidaDestaRonda">
+        <!-- B) Tenho partida ATIVA esta ronda → aguardo a minha vez no palco -->
+        <template v-else-if="minhaPartidaAtivaEstaRonda">
           <p class="text-overline text-medium-emphasis text-center mb-2">A tua partida</p>
 
           <v-card rounded="xl" elevation="0" class="match-card mb-4">
@@ -753,28 +779,52 @@ async function confirmarIniciar() {
             Os confrontos foram revelados. Aguarda o admin começar os jogos.
           </v-alert>
 
+          <v-alert v-else-if="minhaPartidaEmDestaque" type="info" variant="tonal" icon="mdi-television-play" rounded="lg">
+            <strong>Vais entrar no palco!</strong> A tua partida está a ser apresentada.
+          </v-alert>
+
           <!-- Em JOGO à espera do apresentador (igual aos bots — sem botão) -->
           <v-alert v-else-if="minhaPartidaAEsperar" type="info" variant="tonal" icon="mdi-television-off" rounded="lg">
             <strong>Aguarda a tua vez no palco.</strong> O jogo começa quando o apresentador trouxer a tua partida para o projetor.
           </v-alert>
-
-          <v-alert v-else-if="ganhei" type="success" variant="tonal" icon="mdi-trophy" rounded="lg">
-            <strong>Ganhaste esta partida!</strong> Aguarda a próxima ronda.
-          </v-alert>
-
-          <v-alert v-else-if="perdi" type="warning" variant="tonal" icon="mdi-emoticon-sad-outline" rounded="lg">
-            <strong>Foste eliminado.</strong> Obrigado por jogares — segue o resto no projetor.
-          </v-alert>
         </template>
 
-        <!-- Era jogador mas já não estou nesta ronda → eliminado em rondas anteriores -->
-        <v-card v-else-if="fuiEliminadoAntes" rounded="xl" variant="tonal" color="warning" class="text-center">
-          <v-card-text class="pa-8">
-            <v-icon size="64" class="mb-3">mdi-emoticon-sad-outline</v-icon>
-            <h2 class="text-h5 font-weight-black mb-1">Foste eliminado</h2>
-            <p class="text-body-2 text-medium-emphasis">Segue o resto do torneio no projetor.</p>
-          </v-card-text>
-        </v-card>
+        <!-- C) Não tenho nada para jogar agora (eliminado / passei de ronda / plateia) → aposto na mesma -->
+        <template v-else>
+          <v-alert v-if="notaApostador" :type="notaApostador.cor" variant="tonal" density="comfortable" rounded="lg" class="mb-3">
+            {{ notaApostador.txt }}
+          </v-alert>
+          <PainelAposta
+            :partida="partidaDestaque"
+            :jogador1="destJ1"
+            :jogador2="destJ2"
+            :apostas-abertas="apostasAbertas"
+            :minha-aposta="minhaAposta"
+            :saldo="minhaParticipacao?.moedas ?? 0"
+            :pote1="poteJog1"
+            :pote2="poteJog2"
+            :n1="nApostadores1"
+            :n2="nApostadores2"
+            @apostar="fazerAposta"
+          />
+          <div class="mt-6">
+            <p class="text-overline text-medium-emphasis mb-3">
+              <v-icon size="14" start>mdi-tournament</v-icon>Confrontos desta ronda
+            </p>
+            <TorneioBracket
+              :torneio-id="torneioId"
+              :partidas="partidasRonda"
+              :fase-atual="faseAtual"
+              :jogo-atual="jogoAtual"
+              :perfil-id="perfil?.id"
+              :is-admin="false"
+              :em-jogo="emJogo"
+              :destaque-id="partidaDestaque?.id ?? null"
+              :bloquear-troca="false"
+              :perfil-de="perfilDe"
+            />
+          </div>
+        </template>
       </div>
 
         <!-- Fallback SSR: mostra o bracket enquanto o JS não hidrata -->

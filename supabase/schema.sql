@@ -860,7 +860,10 @@ begin
   select * into v_part from public.torneio_participantes
     where torneio_id = v.torneio_id and utilizador_id = v_acting for update;
   if v_part.id is null then raise exception 'Não estás inscrito neste torneio'; end if;
-  if v_part.status_inscricao <> 'PLATEIA' then raise exception 'Só a plateia pode apostar'; end if;
+  -- Toda a gente pode apostar (plateia, eliminados, quem espera a vez) — exceto
+  -- os dois jogadores da própria partida em destaque.
+  if v_acting = v.jogador1_id or v_acting = v.jogador2_id then
+    raise exception 'Não podes apostar na tua própria partida'; end if;
   if v_part.moedas < p_montante then raise exception 'Moedas insuficientes'; end if;
 
   select * into v_existe from public.apostas
