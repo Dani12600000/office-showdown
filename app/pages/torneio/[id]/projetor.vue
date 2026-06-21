@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import confetti from 'canvas-confetti'
+import type { LoopNome } from '~/composables/useProjetorAudio'
 
 definePageMeta({ layout: 'projetor', middleware: 'auth' })
 
@@ -9,12 +10,15 @@ const torneioId = route.params.id as string
 // URL para o QR — leva ao registo/entrada (origem do site)
 const url = useRequestURL()
 const urlEntrada = computed(() => `${url.origin}/signup`)
+// QR do ecrã de campeão — leva à página do torneio (ver resultado / partilhar)
+const urlResultado = computed(() => `${url.origin}/torneio/${torneioId}`)
 
 const {
   torneio, loading,
   participantes, partidasRonda, perfilDe, partidaDestaque,
   faseAtual, jogoAtual, jogoTipoDe,
   apostasAbertas, poteJog1, poteJog2, nApostadores1, nApostadores2,
+  melhorApostador,
   carregarLobby,
 } = useLobby(torneioId)
 
@@ -65,6 +69,35 @@ watch(() => dest.value?.id, (newId, oldId) => {
   if (!projetorPronto.value) return
   if (newId && newId !== oldId) introPartidaVisivel.value = true
 })
+
+// ---- Som do projetor ----
+const { ativo: somAtivo, mudo, ativar: ativarSom, alternarMudo, tocarLoop, tocarStinger } = useProjetorAudio()
+
+// Loop de fundo consoante a cena atual
+const cenaLoop = computed<LoopNome>(() => {
+  if (terminado.value) return 'campeao'
+  if (emLobby.value)   return 'lobby'
+  if (naArvore.value)  return 'confrontos'
+  if (emJogo.value) {
+    if (apostasAbertas.value) return 'apostas'
+    if (dest.value)           return 'jogo'
+    return 'standby'
+  }
+  return 'lobby'
+})
+watch(cenaLoop, (l) => tocarLoop(l), { immediate: true })
+
+// Stingers (one-shots)
+watch(inicioJogosVisivel,  (v, o) => { if (v && !o) tocarStinger('comecar') })
+watch(introPartidaVisivel, (v, o) => { if (v && !o) tocarStinger('intro-vs') })
+// Vitória da partida (status passa a TERMINADO)
+watch(() => dest.value?.status, (s, o) => {
+  if (s === 'TERMINADO' && o === 'A_JOGAR') tocarStinger('vitoria')
+})
+// Revelação (drumroll) — nova janela de revelação enquanto a partida ainda decorre
+watch(() => dest.value?.revelar_ate, (r, o) => {
+  if (r && r !== o && dest.value?.status === 'A_JOGAR') tocarStinger('revelacao')
+})
 </script>
 
 <template>
@@ -73,6 +106,29 @@ watch(() => dest.value?.id, (newId, oldId) => {
   </div>
 
   <div v-else-if="torneio" class="pa-8">
+
+    <!-- Controlo de som (canto inferior direito) -->
+    <div class="som-ctrl">
+      <v-btn
+        v-if="!somAtivo"
+        color="primary"
+        rounded="pill"
+        size="large"
+        prepend-icon="mdi-volume-high"
+        class="font-weight-bold som-pulse"
+        @click="ativarSom"
+      >
+        Ativar som
+      </v-btn>
+      <v-btn
+        v-else
+        :icon="mudo ? 'mdi-volume-off' : 'mdi-volume-high'"
+        :color="mudo ? 'surface-variant' : 'primary'"
+        variant="tonal"
+        size="small"
+        @click="alternarMudo"
+      />
+    </div>
 
     <!-- Animações de transição (usam Teleport → rendem no body) -->
     <TransicaoInicioJogo
@@ -105,14 +161,34 @@ watch(() => dest.value?.id, (newId, oldId) => {
     <Transition name="proj-fade" mode="out-in">
 
     <!-- ===== CAMPEÃO ===== -->
-    <div v-if="terminado" key="campiao" class="text-center py-10">
+    <div v-if="terminado" key="campiao" class="text-center py-6">
       <p class="text-overline text-medium-emphasis" style="font-size:1.2rem !important">Campeão</p>
-      <v-avatar size="240" color="primary" class="champion-glow my-6">
+      <v-avatar size="220" color="primary" class="champion-glow my-5">
         <v-img v-if="campeao?.avatar_url" :src="campeao.avatar_url" cover />
         <span v-else class="font-weight-black text-surface" style="font-size:6rem">{{ campeao?.name?.charAt(0).toUpperCase() }}</span>
       </v-avatar>
-      <h1 class="font-weight-black" style="font-size:5rem; line-height:1">{{ campeao?.name }}</h1>
-      <v-icon size="64" color="accent" class="mt-4">mdi-trophy</v-icon>
+      <h1 class="font-weight-black" style="font-size:4.5rem; line-height:1">{{ campeao?.name }}</h1>
+      <v-icon size="56" color="accent" class="mt-3">mdi-trophy</v-icon>
+
+      <!-- Pódio do fim: melhor apostador + QR de partilha -->
+      <div class="fim-grid mt-8">
+        <div v-if="melhorApostador" class="fim-card">
+          <p class="text-overline text-medium-emphasis mb-2">🪙 Melhor apostador</p>
+          <v-avatar size="100" color="secondary" class="apostador-glow mb-3">
+            <v-img v-if="melhorApostador.utilizador?.avatar_url" :src="melhorApostador.utilizador.avatar_url" cover />
+            <span v-else class="font-weight-black text-surface" style="font-size:2.6rem">{{ melhorApostador.utilizador?.name?.charAt(0).toUpperCase() }}</span>
+          </v-avatar>
+          <h3 class="text-h5 font-weight-black">{{ melhorApostador.utilizador?.name }}</h3>
+          <div class="text-h6 font-weight-bold text-success mt-1">+{{ melhorApostador.ganho }} 🪙 de lucro</div>
+          <div class="text-body-1 text-medium-emphasis">{{ melhorApostador.moedas }} 🪙 no total · {{ melhorApostador.nApostas }} apostas</div>
+        </div>
+
+        <div class="fim-card">
+          <p class="text-overline text-medium-emphasis mb-3">📲 Vê e partilha o resultado</p>
+          <QrCode :value="urlResultado" :size="180" class="mx-auto" />
+          <p class="text-body-2 text-medium-emphasis mt-3">Aponta a câmara do telemóvel</p>
+        </div>
+      </div>
     </div>
 
     <!-- ===== LOBBY ===== -->
@@ -262,6 +338,44 @@ watch(() => dest.value?.id, (newId, oldId) => {
   box-shadow: 0 0 80px rgba(255, 214, 0, 0.7);
   outline: 4px solid rgb(var(--v-theme-accent));
   outline-offset: 4px;
+}
+
+/* Controlo de som — sempre por cima de tudo */
+.som-ctrl {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 10000;
+}
+.som-pulse { animation: som-pulse 1.6s ease-in-out infinite; }
+@keyframes som-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(0,229,255,0.5); }
+  50%      { box-shadow: 0 0 0 14px rgba(0,229,255,0); }
+}
+
+/* Pódio do fim (campeão) */
+.fim-grid {
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
+  gap: 40px;
+  flex-wrap: wrap;
+}
+.fim-card {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 20px;
+  padding: 24px 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 280px;
+}
+.apostador-glow {
+  outline: 3px solid rgb(var(--v-theme-secondary));
+  outline-offset: 3px;
+  box-shadow: 0 0 36px rgba(255,23,68,0.5);
 }
 .player-avatar { outline: 3px solid rgba(255,255,255,0.15); outline-offset: 3px; transition: outline-color 0.3s, box-shadow 0.3s; }
 .player-avatar--jogar   { outline-color: rgb(var(--v-theme-success)); box-shadow: 0 0 20px rgba(0,230,118,0.4); }

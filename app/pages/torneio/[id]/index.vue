@@ -15,6 +15,7 @@ const {
   partidasRonda, minhaPartida, rondaTerminada, perfilDe,
   partidaDestaque, destacarPartida, destacarAleatoria,
   apostasAbertas, poteJog1, poteJog2, nApostadores1, nApostadores2, minhaAposta, apostar, fecharApostas,
+  melhorApostador,
   carregarLobby,
   confirmarJogador, moverParaPlateia, colocarPendente, adicionarBot,
   definirMax, definirJogoRonda, definirPreferencia, definirMinhaPreferencia, preencherAteMax, sortearElenco,
@@ -142,6 +143,38 @@ async function comecar() {
 }
 const terminado = computed(() => torneio.value?.status === 'FINAL')
 const campeao = computed(() => perfilDe(torneio.value?.vencedor_id ?? null))
+
+// ---- Partilha do resultado (fim do torneio) ----
+const copiado = ref(false)
+const partilhaTexto = computed(() => {
+  let t = `🏆 ${campeao.value?.name ?? '—'} venceu o torneio "${torneio.value?.nome ?? ''}" no Office Showdown!`
+  if (melhorApostador.value) {
+    t += ` 🪙 Melhor apostador: ${melhorApostador.value.utilizador?.name} (+${melhorApostador.value.ganho}).`
+  }
+  return t
+})
+const urlPartilha = computed(() =>
+  import.meta.client ? window.location.href : ''
+)
+
+async function partilhar() {
+  const dados = { title: 'Office Showdown', text: partilhaTexto.value, url: urlPartilha.value }
+  if (import.meta.client && navigator.share) {
+    try { await navigator.share(dados) } catch { /* cancelado */ }
+    return
+  }
+  // Fallback: copiar para a área de transferência
+  try {
+    await navigator.clipboard.writeText(`${partilhaTexto.value} ${urlPartilha.value}`)
+    copiado.value = true
+    setTimeout(() => { copiado.value = false }, 2500)
+  } catch { /* sem permissão */ }
+}
+
+function partilharWhatsApp() {
+  const txt = encodeURIComponent(`${partilhaTexto.value} ${urlPartilha.value}`)
+  window.open(`https://wa.me/?text=${txt}`, '_blank')
+}
 
 // ---- Vista focada do jogador (não-admin) durante ARVORE/JOGO ----
 // O bracket completo só interessa ao admin. O jogador real vê só
@@ -589,6 +622,42 @@ async function confirmarIniciar() {
           </span>
         </v-avatar>
         <h2 class="text-h4 font-weight-black">{{ campeao?.name }}</h2>
+
+        <!-- Melhor apostador -->
+        <v-card v-if="melhorApostador" rounded="xl" variant="tonal" color="secondary" class="mx-auto mt-8" max-width="360">
+          <v-card-text class="d-flex align-center gap-4 pa-4">
+            <v-avatar size="64" color="secondary">
+              <v-img v-if="melhorApostador.utilizador?.avatar_url" :src="melhorApostador.utilizador.avatar_url" cover />
+              <span v-else class="text-h5 font-weight-black text-surface">{{ melhorApostador.utilizador?.name?.charAt(0).toUpperCase() }}</span>
+            </v-avatar>
+            <div class="text-left">
+              <p class="text-overline text-medium-emphasis mb-0">🪙 Melhor apostador</p>
+              <p class="text-h6 font-weight-black mb-0">{{ melhorApostador.utilizador?.name }}</p>
+              <p class="text-body-2 mb-0">
+                <span class="text-success font-weight-bold">+{{ melhorApostador.ganho }} 🪙</span>
+                · {{ melhorApostador.moedas }} 🪙 no total
+              </p>
+            </div>
+          </v-card-text>
+        </v-card>
+
+        <!-- Partilha -->
+        <div class="mt-8">
+          <p class="text-body-2 text-medium-emphasis mb-3">Partilha o resultado</p>
+          <div class="d-flex flex-wrap justify-center gap-2">
+            <v-btn color="primary" variant="flat" rounded="pill" prepend-icon="mdi-share-variant" @click="partilhar">
+              Partilhar
+            </v-btn>
+            <v-btn color="green" variant="tonal" rounded="pill" prepend-icon="mdi-whatsapp" @click="partilharWhatsApp">
+              WhatsApp
+            </v-btn>
+          </div>
+          <v-fade-transition>
+            <p v-if="copiado" class="text-caption text-success mt-3">
+              <v-icon size="14">mdi-check</v-icon> Resultado copiado para a área de transferência
+            </p>
+          </v-fade-transition>
+        </div>
       </div>
 
       <!-- ===== VISTA: BRACKET (admin, a jogar) ===== -->

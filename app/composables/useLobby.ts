@@ -198,6 +198,32 @@ export const useLobby = (torneioId: string) => {
     apostasDestaque.value.find(a => a.apostador_id === perfil.value?.id) ?? null
   )
 
+  // Melhor apostador do torneio: maior lucro líquido (soma dos ganhos de todas
+  // as apostas liquidadas). Devolve null se ninguém teve lucro positivo.
+  const melhorApostador = computed(() => {
+    const agg = new Map<string, { ganho: number; apostado: number; nApostas: number }>()
+    for (const a of apostas.value) {
+      const e = agg.get(a.apostador_id) ?? { ganho: 0, apostado: 0, nApostas: 0 }
+      e.ganho += a.ganho
+      e.apostado += a.montante
+      e.nApostas += 1
+      agg.set(a.apostador_id, e)
+    }
+    let topo: { id: string; ganho: number; apostado: number; nApostas: number } | null = null
+    for (const [id, e] of agg) {
+      if (!topo || e.ganho > topo.ganho) topo = { id, ...e }
+    }
+    if (!topo || topo.ganho <= 0) return null
+    const part = participantes.value.find(p => p.utilizador_id === topo!.id)
+    return {
+      utilizador: part?.utilizador ?? perfilDe(topo.id),
+      moedas: part?.moedas ?? 0,
+      ganho: topo.ganho,
+      apostado: topo.apostado,
+      nApostas: topo.nApostas,
+    }
+  })
+
   const fecharApostas = async () => {
     const { error } = await supabase
       .from('torneios')
@@ -588,6 +614,7 @@ export const useLobby = (torneioId: string) => {
     poteJog1, poteJog2, poteTotal,
     nApostadores1, nApostadores2,
     minhaAposta,
+    melhorApostador,
     fecharApostas,
     apostar,
     loading: readonly(loading),
