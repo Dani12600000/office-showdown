@@ -515,7 +515,7 @@ async function confirmarIniciar() {
             <!-- Jogo de cada ronda -->
             <v-card rounded="xl" variant="tonal" class="mb-4">
               <v-card-text class="pa-4">
-                <div class="d-flex align-center gap-2 mb-3">
+                <div class="d-flex align-center ga-2 mb-3">
                   <v-icon size="18" color="primary">mdi-gamepad-variant</v-icon>
                   <span class="text-body-2 font-weight-bold">Jogo de cada ronda</span>
                 </div>
@@ -664,7 +664,7 @@ async function confirmarIniciar() {
 
         <!-- Melhor apostador -->
         <v-card v-if="melhorApostador" rounded="xl" variant="tonal" color="secondary" class="mx-auto mt-8" max-width="360">
-          <v-card-text class="d-flex align-center gap-4 pa-4">
+          <v-card-text class="d-flex align-center ga-4 pa-4">
             <v-avatar size="64" color="secondary">
               <v-img v-if="melhorApostador.utilizador?.avatar_url" :src="melhorApostador.utilizador.avatar_url" cover />
               <span v-else class="text-h5 font-weight-black text-surface">{{ melhorApostador.utilizador?.name?.charAt(0).toUpperCase() }}</span>
@@ -683,7 +683,7 @@ async function confirmarIniciar() {
         <!-- As minhas apostas (resultado final) -->
         <v-card v-if="meuResultadoApostas" rounded="xl" variant="tonal" class="mx-auto mt-4" max-width="360"
           :color="meuResultadoApostas.lucro > 0 ? 'success' : (meuResultadoApostas.lucro < 0 ? 'error' : undefined)">
-          <v-card-text class="d-flex align-center justify-space-between gap-3 pa-4">
+          <v-card-text class="d-flex align-center justify-space-between ga-3 pa-4">
             <div class="text-left">
               <p class="text-overline text-medium-emphasis mb-0">As tuas apostas</p>
               <p class="text-h6 font-weight-black mb-0">
@@ -702,7 +702,7 @@ async function confirmarIniciar() {
         <!-- Partilha -->
         <div class="mt-8">
           <p class="text-body-2 text-medium-emphasis mb-3">Partilha o resultado</p>
-          <div class="d-flex flex-wrap justify-center gap-2">
+          <div class="d-flex flex-wrap justify-center ga-2">
             <v-btn color="primary" variant="flat" rounded="pill" prepend-icon="mdi-share-variant" @click="partilhar">
               Partilhar
             </v-btn>
@@ -799,7 +799,7 @@ async function confirmarIniciar() {
                       {{ meuAdversario?.name?.charAt(0).toUpperCase() ?? '?' }}
                     </span>
                   </v-avatar>
-                  <div class="text-body-1 font-weight-bold mt-2 d-flex align-center justify-center gap-1">
+                  <div class="text-body-1 font-weight-bold mt-2 d-flex align-center justify-center ga-1">
                     {{ meuAdversario?.name ?? '—' }}
                     <v-icon v-if="meuAdversario?.is_bot" size="14" class="text-medium-emphasis">mdi-robot</v-icon>
                   </div>
@@ -901,7 +901,7 @@ async function confirmarIniciar() {
 
         <!-- CONFIRMADOS -->
         <v-col cols="12" md="5">
-          <div class="d-flex align-center gap-2 mb-3">
+          <div class="d-flex align-center ga-2 mb-3">
             <span class="dot dot--success mr-2" />
             <span class="text-subtitle-1 font-weight-bold">Jogadores confirmados</span>
             <v-spacer />
@@ -915,7 +915,7 @@ async function confirmarIniciar() {
               class="player-card player-card--success mb-2"
               :class="{ 'player-card--me': p.utilizador_id === perfil?.id }"
             >
-              <v-card-text class="pa-3 d-flex align-center gap-3">
+              <v-card-text class="pa-3 d-flex align-center ga-3">
                 <v-avatar size="44" color="primary" class="ring-success flex-shrink-0">
                   <v-img v-if="p.utilizador?.avatar_url" :src="p.utilizador.avatar_url" cover />
                   <span v-else class="text-body-1 font-weight-black text-surface">
@@ -923,7 +923,7 @@ async function confirmarIniciar() {
                   </span>
                 </v-avatar>
                 <div class="flex-grow-1 overflow-hidden">
-                  <div class="text-body-2 font-weight-bold d-flex align-center gap-1">
+                  <div class="text-body-2 font-weight-bold d-flex align-center ga-1">
                     <span class="text-truncate">{{ p.utilizador?.name }}</span>
                     <v-chip v-if="p.utilizador_id === perfil?.id" size="x-small" color="primary">Tu</v-chip>
                     <v-chip v-if="p.utilizador?.is_bot" size="x-small" variant="tonal" color="surface-variant">
@@ -950,7 +950,7 @@ async function confirmarIniciar() {
         <v-col cols="12" md="7">
 
           <!-- A aguardar -->
-          <div class="d-flex align-center gap-2 mb-3">
+          <div class="d-flex align-center ga-2 mb-3">
             <span class="dot dot--warning mr-2" />
             <span class="text-subtitle-1 font-weight-bold">A aguardar</span>
             <v-spacer />
@@ -964,7 +964,7 @@ async function confirmarIniciar() {
               class="player-card player-card--warning mb-2"
               :class="{ 'player-card--me': p.utilizador_id === perfil?.id }"
             >
-              <v-card-text class="pa-3 d-flex align-center gap-3">
+              <v-card-text class="pa-3 d-flex align-center ga-3">
                 <v-avatar size="40" color="surface-variant" class="flex-shrink-0">
                   <v-img v-if="p.utilizador?.avatar_url" :src="p.utilizador.avatar_url" cover />
                   <span v-else class="text-caption font-weight-bold">
@@ -972,14 +972,14 @@ async function confirmarIniciar() {
                   </span>
                 </v-avatar>
                 <div class="flex-grow-1 overflow-hidden">
-                  <div class="text-body-2 font-weight-medium d-flex align-center gap-1">
+                  <div class="text-body-2 font-weight-medium d-flex align-center ga-1">
                     <span class="text-truncate">{{ p.utilizador?.name }}</span>
                     <v-chip v-if="p.utilizador_id === perfil?.id" size="x-small" color="warning">Tu</v-chip>
                     <v-chip v-if="p.utilizador?.is_bot" size="x-small" variant="tonal" color="surface-variant">
                       <v-icon start size="11">mdi-robot</v-icon>BOT
                     </v-chip>
                   </div>
-                  <div class="text-caption text-medium-emphasis d-flex align-center gap-1">
+                  <div class="text-caption text-medium-emphasis d-flex align-center ga-1">
                     @{{ p.utilizador?.username }}
                     <span class="mx-1">·</span>
                     <v-icon size="12" :color="p.preferencia === 'PLATEIA' ? 'primary' : 'success'">
@@ -998,14 +998,14 @@ async function confirmarIniciar() {
           </div>
 
           <!-- Plateia -->
-          <div class="d-flex align-center gap-2 mt-5 mb-3">
+          <div class="d-flex align-center ga-2 mt-5 mb-3">
             <span class="dot dot--primary mr-2" />
             <span class="text-subtitle-2 font-weight-bold">Plateia</span>
             <v-spacer />
             <v-chip color="primary" variant="tonal" size="small">{{ plateia.length }}</v-chip>
           </div>
 
-          <div v-if="plateia.length" class="d-flex flex-wrap gap-2">
+          <div v-if="plateia.length" class="d-flex flex-wrap ga-2">
             <v-chip
               v-for="p in plateia" :key="p.id"
               :color="p.utilizador_id === perfil?.id ? 'primary' : undefined"
@@ -1036,7 +1036,7 @@ async function confirmarIniciar() {
             Esta ação não pode ser desfeita.
           </p>
         </v-card-text>
-        <v-card-actions class="px-6 pb-6 pt-0 gap-3">
+        <v-card-actions class="px-6 pb-6 pt-0 ga-3">
           <v-btn variant="text" flex-grow-1 @click="dialogIniciar = false">Cancelar</v-btn>
           <v-btn color="secondary" flex-grow-1 :loading="aIniciar" prepend-icon="mdi-play-circle" @click="confirmarIniciar">
             Vamos lá!
@@ -1064,7 +1064,7 @@ async function confirmarIniciar() {
       </template>
 
       <v-card rounded="xl" min-width="300" max-width="360" elevation="12">
-        <v-card-title class="text-subtitle-1 font-weight-bold d-flex align-center gap-2 pa-4 pb-2">
+        <v-card-title class="text-subtitle-1 font-weight-bold d-flex align-center ga-2 pa-4 pb-2">
           <v-icon size="20" color="secondary">mdi-robot</v-icon>
           Controlar bots
         </v-card-title>
@@ -1120,7 +1120,7 @@ async function confirmarIniciar() {
       </template>
 
       <v-card rounded="xl" min-width="300" max-width="360" elevation="12">
-        <v-card-title class="text-subtitle-1 font-weight-bold d-flex align-center gap-2 pa-4 pb-2">
+        <v-card-title class="text-subtitle-1 font-weight-bold d-flex align-center ga-2 pa-4 pb-2">
           <v-icon size="20" color="secondary">mdi-robot</v-icon>
           Personificar bots
         </v-card-title>

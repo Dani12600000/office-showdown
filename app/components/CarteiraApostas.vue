@@ -38,7 +38,7 @@ function inicial(u: Utilizador | null) { return u?.name?.charAt(0).toUpperCase()
 
       <template v-if="ultimas.length">
         <p class="text-caption text-medium-emphasis mt-3 mb-1">Últimas apostas</p>
-        <div v-for="a in ultimas" :key="a.id" class="d-flex align-center gap-3 py-2 aposta-linha">
+        <div v-for="a in ultimas" :key="a.id" class="d-flex align-center ga-3 py-2 aposta-linha">
           <v-avatar size="34" color="surface-variant">
             <v-img v-if="perfilDe(a.alvo_id)?.avatar_url" :src="perfilDe(a.alvo_id)!.avatar_url!" cover />
             <span v-else class="text-caption font-weight-black">{{ inicial(perfilDe(a.alvo_id)) }}</span>

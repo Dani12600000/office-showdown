@@ -110,7 +110,7 @@ const participacaoConfig = {
   <v-container class="py-8" max-width="900">
 
     <!-- Saudação -->
-    <div v-motion-fade class="d-flex align-center justify-space-between mb-8 flex-wrap gap-3">
+    <div v-motion-fade class="d-flex align-center justify-space-between mb-8 flex-wrap ga-3">
       <div>
         <h2 class="text-h5 font-weight-bold">
           Olá, <span class="text-primary">{{ perfil?.name }}</span> 👋
@@ -149,7 +149,7 @@ const participacaoConfig = {
             {{ erroCriar }}
           </v-alert>
         </v-card-text>
-        <v-card-actions class="px-6 pb-6 pt-0 gap-2">
+        <v-card-actions class="px-6 pb-6 pt-0 ga-2">
           <v-btn variant="text" :disabled="aCriar" @click="dialogCriar = false; nomeTorneio = ''">
             Cancelar
           </v-btn>
@@ -282,7 +282,7 @@ const participacaoConfig = {
           <v-divider />
 
           <!-- Ações -->
-          <v-card-actions class="pa-4 gap-2">
+          <v-card-actions class="pa-4 ga-2">
 
             <!-- Botão gerir — admin vê sempre -->
             <v-btn
@@ -351,7 +351,7 @@ const participacaoConfig = {
             (partidas, inscrições e bots). Esta ação é irreversível.
           </p>
         </v-card-text>
-        <v-card-actions class="px-6 pb-6 pt-0 gap-3">
+        <v-card-actions class="px-6 pb-6 pt-0 ga-3">
           <v-btn variant="text" block :disabled="aApagar" @click="torneioApagar = null">Cancelar</v-btn>
           <v-btn color="error" block :loading="aApagar" prepend-icon="mdi-delete" @click="confirmarApagar">
             Apagar

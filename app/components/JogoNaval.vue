@@ -230,7 +230,7 @@ const textoUltimo = computed(() => {
           </div>
 
           <!-- Paleta de navios -->
-          <div class="d-flex justify-center flex-wrap gap-2 mb-3">
+          <div class="d-flex justify-center flex-wrap ga-2 mb-3">
             <v-chip
               v-for="n in NAVIOS" :key="n.id"
               :color="selecionadoId === n.id ? minhaCor : undefined"
@@ -244,7 +244,7 @@ const textoUltimo = computed(() => {
           </div>
 
           <!-- Direção + ações -->
-          <div class="d-flex justify-center align-center gap-2 mb-4 flex-wrap">
+          <div class="d-flex justify-center align-center ga-2 mb-4 flex-wrap">
             <v-btn-toggle v-model="orientacao" mandatory density="comfortable" variant="outlined" divided rounded="lg">
               <v-btn value="H" size="small"><v-icon start size="16">mdi-arrow-left-right</v-icon>Horizontal</v-btn>
               <v-btn value="V" size="small"><v-icon start size="16">mdi-arrow-up-down</v-icon>Vertical</v-btn>

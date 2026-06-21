@@ -160,7 +160,7 @@ watch(() => dest.value?.revelar_ate, (r, o) => {
       <LogoShowdown />
       <div class="text-right">
         <h1 class="text-h3 font-weight-black">{{ torneio.nome }}</h1>
-        <div class="d-flex gap-2 justify-end mt-2">
+        <div class="d-flex ga-2 justify-end mt-2">
           <v-chip size="large" variant="tonal" color="primary">
             <v-icon start>mdi-controller-classic</v-icon>{{ jogoAtual }}
           </v-chip>
@@ -240,7 +240,7 @@ watch(() => dest.value?.revelar_ate, (r, o) => {
               <v-img v-if="p.utilizador?.avatar_url" :src="p.utilizador.avatar_url" cover />
               <span v-else class="text-h5 font-weight-black text-surface">{{ p.utilizador?.name?.charAt(0).toUpperCase() }}</span>
             </v-avatar>
-            <div class="text-subtitle-2 font-weight-bold d-flex align-center justify-center gap-1">
+            <div class="text-subtitle-2 font-weight-bold d-flex align-center justify-center ga-1">
               <span>{{ p.utilizador?.name }}</span>
               <v-icon v-if="p.utilizador?.is_bot" size="14" class="text-medium-emphasis">mdi-robot</v-icon>
             </div>

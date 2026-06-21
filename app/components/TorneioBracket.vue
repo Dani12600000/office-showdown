@@ -27,7 +27,7 @@ function souEu(id: string | null) {
 
 <template>
   <div>
-    <div class="d-flex flex-wrap gap-2 mb-5">
+    <div class="d-flex flex-wrap ga-2 mb-5">
       <v-chip color="secondary" size="small" label>
         <v-icon start size="14">mdi-sword-cross</v-icon>{{ faseAtual }}
       </v-chip>

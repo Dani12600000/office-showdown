@@ -144,7 +144,7 @@ onMounted(() => { if (destTerminada.value) lançarConfetti() })
 
     <v-expand-transition>
       <div v-if="revelando" class="text-center reveal">
-        <div class="d-flex align-center justify-center gap-10">
+        <div class="d-flex align-center justify-center ga-10">
           <div class="emoji text-blue" :class="{ 'suspense-shake': suspense }">{{ suspense ? '❔' : emoji(ultima?.e1) }}</div>
           <span class="text-h5 text-medium-emphasis">vs</span>
           <div class="emoji text-red" :class="{ 'suspense-shake': suspense }">{{ suspense ? '❔' : emoji(ultima?.e2) }}</div>

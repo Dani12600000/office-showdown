@@ -51,7 +51,7 @@ if (comoId.value) {
       Voltar ao torneio
     </v-btn>
 
-    <div class="text-center mb-4 d-flex flex-column align-center gap-2">
+    <div class="text-center mb-4 d-flex flex-column align-center ga-2">
       <v-chip size="small" variant="tonal" color="primary">
         <v-icon start size="14">mdi-trophy-variant</v-icon>{{ jogoNome }}
       </v-chip>

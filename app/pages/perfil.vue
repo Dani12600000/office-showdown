@@ -332,7 +332,7 @@ async function submeterPassword() {
           {{ erroEmail }}
         </v-alert>
       </v-card-text>
-      <v-card-actions class="pa-6 pt-0 gap-2">
+      <v-card-actions class="pa-6 pt-0 ga-2">
         <v-spacer />
         <v-btn variant="text" :disabled="aGuardarEmail" @click="dialogEmail = false">Cancelar</v-btn>
         <v-btn
@@ -392,7 +392,7 @@ async function submeterPassword() {
           </v-alert>
         </v-form>
       </v-card-text>
-      <v-card-actions class="pa-6 pt-0 gap-2">
+      <v-card-actions class="pa-6 pt-0 ga-2">
         <v-spacer />
         <v-btn variant="text" :disabled="aGuardarPassword" @click="dialogPassword = false">Cancelar</v-btn>
         <v-btn

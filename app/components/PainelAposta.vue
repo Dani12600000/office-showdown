@@ -131,7 +131,7 @@ const resultado = computed(() => {
         <!-- Form de aposta (abertas) -->
         <template v-else>
           <!-- Escolher jogador -->
-          <div class="d-flex gap-2 mb-4">
+          <div class="d-flex ga-2 mb-4">
             <button
               class="alvo" :class="{ 'alvo--sel': alvo === jogador1?.id, 'alvo--blue': true, 'alvo--off': alvoFixo && alvoFixo !== jogador1?.id }"
               @click="escolherAlvo(jogador1?.id)"
@@ -167,7 +167,7 @@ const resultado = computed(() => {
               <span class="text-body-1 font-weight-bold text-accent">{{ montante }} 🪙</span>
             </div>
             <v-slider v-model="montante" :min="1" :max="saldo" :step="1" color="accent" hide-details density="compact" class="mb-2" />
-            <div class="d-flex gap-2 mb-4 flex-wrap">
+            <div class="d-flex ga-2 mb-4 flex-wrap">
               <v-chip size="small" variant="tonal" @click="setMontante(10)">10</v-chip>
               <v-chip size="small" variant="tonal" @click="setMontante(25)">25</v-chip>
               <v-chip size="small" variant="tonal" @click="setMontante(50)">50</v-chip>
