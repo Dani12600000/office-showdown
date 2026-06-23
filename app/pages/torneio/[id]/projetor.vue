@@ -10,8 +10,8 @@ const torneioId = route.params.id as string
 // URL para o QR — leva ao registo/entrada (origem do site)
 const url = useRequestURL()
 const urlEntrada = computed(() => `${url.origin}/signup`)
-// QR do ecrã de campeão — leva à página do torneio (ver resultado / partilhar)
-const urlResultado = computed(() => `${url.origin}/torneio/${torneioId}`)
+// QR do ecrã de campeão — leva à página PÚBLICA de resultado (ver / partilhar sem login)
+const urlResultado = computed(() => `${url.origin}/torneio/${torneioId}/resultado`)
 
 const {
   torneio, loading,

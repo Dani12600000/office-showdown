@@ -12,6 +12,7 @@ export default defineNuxtConfig({
     '@nuxtjs/supabase',
     '@vueuse/nuxt',
     '@vueuse/motion/nuxt',
+    'nuxt-og-image',
     // Integração vite-plugin-vuetify via hook — auto-importa componentes por tree-shaking
     (_options, nuxt) => {
       nuxt.hooks.hook('vite:extendConfig', (config) => {

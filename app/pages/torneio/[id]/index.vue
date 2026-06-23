@@ -154,9 +154,9 @@ const partilhaTexto = computed(() => {
   }
   return t
 })
-const urlPartilha = computed(() =>
-  import.meta.client ? window.location.href : ''
-)
+// Partilha aponta para a página PÚBLICA de resultado (gera pré-visualização ao partilhar)
+const urlReq = useRequestURL()
+const urlPartilha = computed(() => `${urlReq.origin}/torneio/${torneioId}/resultado`)
 
 async function partilhar() {
   const dados = { title: 'Office Showdown', text: partilhaTexto.value, url: urlPartilha.value }
