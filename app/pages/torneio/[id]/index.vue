@@ -650,6 +650,15 @@ async function confirmarIniciar() {
         </div>
       </div>
 
+      <!-- ===== PAINEL DE CONTROLO DO ANFITRIÃO (admin · a jogar / fim) ===== -->
+      <PainelAnfitriao
+        v-if="isAdmin && (aJogar || terminado)"
+        :participantes="participantes"
+        :apostas="apostas"
+        :partida-destaque="partidaDestaque"
+        :perfil-de="perfilDe"
+      />
+
       <!-- ===== VISTA: CAMPEÃO ===== -->
       <div v-if="terminado" class="text-center py-10">
         <v-icon size="80" color="accent" class="mb-4">mdi-trophy</v-icon>
