@@ -38,19 +38,23 @@ const jogoDestTipo = computed(() => dest.value ? jogoTipoDe(dest.value.ronda) : 
 
 const inicial = (id: string | null) => perfilDe(id)?.name?.charAt(0).toUpperCase() ?? '?'
 
-// ---- Confetti (campeão) ----
+// ---- Confetti (campeão) — só no cliente: confetti() acede ao DOM (document),
+//      e com { immediate: true } o watch dispara durante o SSR. Se o torneio já
+//      estiver em FINAL, isso rebentava o render no servidor ("document is not defined").
 let timer: ReturnType<typeof setInterval> | null = null
-watch(terminado, (fim) => {
-  if (fim) {
-    confetti({ particleCount: 200, spread: 120, origin: { y: 0.5 } })
-    timer = setInterval(() => {
-      confetti({ particleCount: 80, angle: 60, spread: 80, origin: { x: 0 } })
-      confetti({ particleCount: 80, angle: 120, spread: 80, origin: { x: 1 } })
-    }, 1800)
-  } else if (timer) { clearInterval(timer); timer = null }
-}, { immediate: true })
+if (import.meta.client) {
+  watch(terminado, (fim) => {
+    if (fim) {
+      confetti({ particleCount: 200, spread: 120, origin: { y: 0.5 } })
+      timer = setInterval(() => {
+        confetti({ particleCount: 80, angle: 60, spread: 80, origin: { x: 0 } })
+        confetti({ particleCount: 80, angle: 120, spread: 80, origin: { x: 1 } })
+      }, 1800)
+    } else if (timer) { clearInterval(timer); timer = null }
+  }, { immediate: true })
 
-onUnmounted(() => { if (timer) clearInterval(timer) })
+  onUnmounted(() => { if (timer) clearInterval(timer) })
+}
 
 // ---- Animações de transição ----
 
