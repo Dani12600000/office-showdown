@@ -72,10 +72,7 @@ const textoPartilha = computed(() => {
   return t
 })
 
-// Logo real (LogoShowdown) a rasterizar para o cartão de partilha.
-const logoRef = ref<HTMLElement | null>(null)
 const { aGerar, aDescarregar, copiado, partilhar, descarregarImagem } = usePartilhaCartao({
-  logoEl: logoRef,
   texto: () => textoPartilha.value,
   url: () => urlAtual.value,
   dados: () => (terminado.value && campeao.value)
@@ -94,9 +91,7 @@ const { aGerar, aDescarregar, copiado, partilhar, descarregarImagem } = useParti
 <template>
   <div class="resultado-bg">
     <div class="resultado-card">
-      <div ref="logoRef" class="logo-wrap mb-6">
-        <LogoShowdown />
-      </div>
+      <LogoShowdown class="mb-6" />
 
       <template v-if="terminado && campeao">
         <v-icon size="64" color="accent" class="mb-2">mdi-trophy</v-icon>

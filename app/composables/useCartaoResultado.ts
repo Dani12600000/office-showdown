@@ -9,10 +9,11 @@ export type DadosCartao = {
   apostadorNome: string | null
   apostadorAvatar: string | null
   apostadorGanho: number | null
-  // PNG (data URL) do componente LogoShowdown já rasterizado pela página.
-  // Se faltar, desenha-se um logo de recurso em texto.
-  logoDataUrl?: string | null
 }
+
+// Path do ícone sword-cross (MDI) — desenhado diretamente no canvas, igual ao
+// que o LogoShowdown usa, para o logo ser determinístico (sem html-to-image).
+const SWORD_PATH = 'M6.2,2.44L18.1,14.34L20.22,12.22L21.63,13.63L19.16,16.1L22.34,19.28C22.73,19.67 22.73,20.3 22.34,20.69L21.63,21.4C21.24,21.79 20.61,21.79 20.22,21.4L17,18.23L14.56,20.7L13.15,19.29L15.27,17.17L3.37,5.27V2.44H6.2M15.89,10L20.63,5.26V2.44H17.8L13.06,7.18L15.89,10M10.94,15L8.11,12.13L5.9,14.34L3.78,12.22L2.37,13.63L4.84,16.1L1.66,19.29C1.27,19.68 1.27,20.31 1.66,20.7L2.37,21.41C2.76,21.8 3.39,21.8 3.78,21.41L7,18.23L9.44,20.7L10.85,19.29L8.73,17.17L10.94,15Z'
 
 const W = 1080  // largura
 const H = 1350  // altura (retrato 4:5 — bom para WhatsApp/stories)
@@ -97,11 +98,10 @@ export async function gerarCartaoResultado(d: DadosCartao): Promise<Blob | null>
   // Garante a fonte Inter pronta antes de medir/desenhar
   try { await (document as any).fonts?.ready } catch { /* ignore */ }
 
-  // Carrega avatares (+ logo rasterizado) em paralelo
-  const [imgCamp, imgApost, imgLogo] = await Promise.all([
+  // Carrega avatares em paralelo
+  const [imgCamp, imgApost] = await Promise.all([
     d.campeaoAvatar ? carregarImagem(d.campeaoAvatar) : Promise.resolve(null),
     d.apostadorAvatar ? carregarImagem(d.apostadorAvatar) : Promise.resolve(null),
-    d.logoDataUrl ? carregarImagem(d.logoDataUrl) : Promise.resolve(null),
   ])
 
   const CIANO = '#00E5FF', VERMELHO = '#FF1744', OURO = '#FFD600'
@@ -121,23 +121,41 @@ export async function gerarCartaoResultado(d: DadosCartao): Promise<Blob | null>
   ctx.strokeStyle = 'rgba(255,255,255,0.06)'; ctx.lineWidth = 2
   ctx.strokeRect(24, 24, W - 48, H - 48)
 
-  // ---- Logo (topo) ----
-  if (imgLogo) {
-    // Logo REAL (componente LogoShowdown rasterizado), ajustado a uma caixa no topo.
-    const boxW = 640, boxH = 230, boxTop = 70
-    const ar = imgLogo.width / imgLogo.height
-    let dw = boxW, dh = dw / ar
-    if (dh > boxH) { dh = boxH; dw = dh * ar }
-    ctx.drawImage(imgLogo, cx - dw / 2, boxTop + (boxH - dh) / 2, dw, dh)
-  } else {
-    // Recurso: logo em texto (caso a rasterização falhe)
-    ctx.font = '900 92px Inter, system-ui, sans-serif'
-    ctx.fillStyle = CIANO; textoCentrado(ctx, 'OFFICE', cx, 150, 2)
-    ctx.fillStyle = VERMELHO; textoCentrado(ctx, 'SHOWDOWN', cx, 250, 2)
-    const lg = ctx.createLinearGradient(cx - 200, 0, cx + 200, 0)
-    lg.addColorStop(0, 'rgba(0,229,255,0)'); lg.addColorStop(0.5, 'rgba(255,255,255,0.55)'); lg.addColorStop(1, 'rgba(255,23,68,0)')
-    ctx.fillStyle = lg; ctx.fillRect(cx - 200, 312, 400, 3)
-  }
+  // ---- Logo (topo) — desenhado no canvas (determinístico, igual ao LogoShowdown) ----
+  // OFFICE (ciano, com brilho)
+  ctx.save()
+  ctx.shadowColor = 'rgba(0,229,255,0.55)'; ctx.shadowBlur = 26
+  ctx.fillStyle = CIANO
+  const tamOffice = ajustarFonte(ctx, 'OFFICE', 900, 96, W - 160)
+  ctx.font = `900 ${tamOffice}px system-ui, 'Segoe UI', Roboto, sans-serif`
+  textoCentrado(ctx, 'OFFICE', cx, 150, 3)
+  ctx.restore()
+  // SHOWDOWN (vermelho, com brilho)
+  ctx.save()
+  ctx.shadowColor = 'rgba(255,23,68,0.55)'; ctx.shadowBlur = 26
+  ctx.fillStyle = VERMELHO
+  const tamShow = ajustarFonte(ctx, 'SHOWDOWN', 900, 96, W - 120)
+  ctx.font = `900 ${tamShow}px system-ui, 'Segoe UI', Roboto, sans-serif`
+  textoCentrado(ctx, 'SHOWDOWN', cx, 252, 3)
+  ctx.restore()
+  // Barra: traço-azul · sword-cross · traço-vermelho
+  const barY = 322, barW = 92, barH = 4, gap = 18, sword = 30
+  const totalBar = barW * 2 + gap * 2 + sword
+  let bx = cx - totalBar / 2
+  const lgAzul = ctx.createLinearGradient(bx, 0, bx + barW, 0)
+  lgAzul.addColorStop(0, 'rgba(0,229,255,0)'); lgAzul.addColorStop(1, '#00E5FF')
+  ctx.fillStyle = lgAzul; ctx.fillRect(bx, barY - barH / 2, barW, barH)
+  bx += barW + gap
+  ctx.save()
+  ctx.translate(bx, barY - sword / 2)
+  ctx.scale(sword / 24, sword / 24)
+  ctx.fillStyle = 'rgba(255,255,255,0.6)'
+  ctx.fill(new Path2D(SWORD_PATH))
+  ctx.restore()
+  bx += sword + gap
+  const lgVerm = ctx.createLinearGradient(bx, 0, bx + barW, 0)
+  lgVerm.addColorStop(0, '#FF1744'); lgVerm.addColorStop(1, 'rgba(255,23,68,0)')
+  ctx.fillStyle = lgVerm; ctx.fillRect(bx, barY - barH / 2, barW, barH)
 
   // ---- Campeão (herói) ----
   // Avatar mais pequeno e posições adaptadas a haver (ou não) maior apostador,

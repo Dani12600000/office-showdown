@@ -176,11 +176,8 @@ const partilhaTexto = computed(() => {
 const urlReq = useRequestURL()
 const urlPartilha = computed(() => `${urlReq.origin}/torneio/${torneioId}/resultado`)
 
-// Cartão de partilha (PNG com logo + campeão + maior apostador). Reutiliza o
-// LogoShowdown real (rasterizado) — ver o <div ref="logoCartaoRef"> no template.
-const logoCartaoRef = ref<HTMLElement | null>(null)
+// Cartão de partilha (PNG com logo + campeão + maior apostador).
 const { aGerar, aDescarregar, copiado, partilhar, descarregarImagem } = usePartilhaCartao({
-  logoEl: logoCartaoRef,
   texto: () => partilhaTexto.value,
   url: () => urlPartilha.value,
   dados: () => (terminado.value && campeao.value)
@@ -843,11 +840,6 @@ watch(() => minhaParticipacao.value, (agora, antes) => {
               <v-icon size="14">mdi-check</v-icon> Resultado copiado para a área de transferência
             </p>
           </v-fade-transition>
-
-          <!-- Logo real (oculto) só para rasterizar no cartão de partilha -->
-          <div ref="logoCartaoRef" class="logo-cartao-oculto" aria-hidden="true">
-            <LogoShowdown />
-          </div>
         </div>
       </div>
 
@@ -1391,16 +1383,6 @@ watch(() => minhaParticipacao.value, (agora, antes) => {
   bottom: 24px;
   right: 24px;
   z-index: 1000;
-}
-
-/* Logo só para rasterizar (html-to-image) — renderizado mas fora do ecrã.
-   Não usar display:none senão não tem dimensões para capturar. */
-.logo-cartao-oculto {
-  position: fixed;
-  left: -9999px;
-  top: 0;
-  width: max-content;
-  pointer-events: none;
 }
 
 .escolha-lobby {

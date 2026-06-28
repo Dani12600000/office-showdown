@@ -1,16 +1,13 @@
-import type { Ref } from 'vue'
 import { gerarCartaoResultado, type DadosCartao } from './useCartaoResultado'
 
 // Lógica partilhada de partilha/descarregamento do cartão de resultado (PNG),
 // usada tanto no ecrã de campeão (index.vue) como na página pública (resultado.vue).
 //
-// - `logoEl`: nó DOM do <LogoShowdown> a rasterizar (html-to-image) para o cartão.
-// - `dados`: getter dos dados do cartão (sem o logo). Devolve null se não houver
-//   campeão (ex.: torneio ainda a decorrer) — nesse caso não se gera imagem.
+// - `dados`: getter dos dados do cartão. Devolve null se não houver campeão
+//   (ex.: torneio ainda a decorrer) — nesse caso não se gera imagem.
 // - `texto` / `url`: texto e link da partilha.
 export function usePartilhaCartao(opts: {
-  logoEl: Ref<HTMLElement | null>
-  dados: () => Omit<DadosCartao, 'logoDataUrl'> | null
+  dados: () => DadosCartao | null
   texto: () => string
   url: () => string
 }) {
@@ -18,22 +15,10 @@ export function usePartilhaCartao(opts: {
   const aDescarregar = ref(false)
   const copiado = ref(false)
 
-  async function rasterizarLogo(): Promise<string | null> {
-    if (!import.meta.client || !opts.logoEl.value) return null
-    try {
-      const { toPng } = await import('html-to-image')
-      return await toPng(opts.logoEl.value, { pixelRatio: 4, cacheBust: true })
-    } catch (e) {
-      console.warn('[partilha] falha a rasterizar o logo:', e)
-      return null
-    }
-  }
-
   async function gerarImagem(): Promise<Blob | null> {
     const d = opts.dados()
     if (!d) return null
-    const logoDataUrl = await rasterizarLogo()
-    return gerarCartaoResultado({ ...d, logoDataUrl })
+    return gerarCartaoResultado(d)
   }
 
   function descarregarBlob(blob: Blob, nomeFicheiro: string) {
