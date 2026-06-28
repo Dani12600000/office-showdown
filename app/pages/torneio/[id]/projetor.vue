@@ -147,7 +147,8 @@ const navalUltimoSig = computed(() => {
 watch(navalUltimoSig, (sig, antes) => {
   if (!sig || sig === antes) return
   const resultado = sig.split(':')[2]
-  tocarStinger(resultado === 'agua' ? 'agua' : 'explosao')
+  // Volume no máximo — os SFX têm de soar bem acima da música de fundo.
+  tocarStinger(resultado === 'agua' ? 'agua' : 'explosao', 1)
 })
 
 // Revelação (drumroll) — nova janela de revelação enquanto a partida ainda decorre

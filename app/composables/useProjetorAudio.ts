@@ -123,11 +123,12 @@ export function useProjetorAudio() {
   }
 
   // Toca um stinger (one-shot) por cima do loop atual.
-  const tocarStinger = (nome: StingerNome) => {
+  // `vol` opcional permite efeitos mais altos que a música (ex.: SFX do Naval).
+  const tocarStinger = (nome: StingerNome, vol = VOL_STINGER) => {
     if (!ativo.value || mudo.value) return
     const el = obter(nome, false)
     el.muted = false
-    el.volume = VOL_STINGER
+    el.volume = clamp(vol)
     try { el.currentTime = 0 } catch {}
     el.play().catch(() => {})
   }

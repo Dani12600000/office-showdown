@@ -3,11 +3,13 @@ import type { Aposta, Utilizador } from '~/types/torneio'
 
 // Carteira do jogador: saldo de moedas + as últimas apostas e o seu resultado.
 // Útil para mostrar enquanto se espera pela própria partida.
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   saldo: number
   apostas: readonly Aposta[]
   perfilDe: (id: string | null) => Utilizador | null
-}>()
+  // Prémios por venceres uma partida em que ninguém apostou em ti (o pote veio para ti)
+  premios?: { partidaId: string; valor: number; adversario: Utilizador | null }[]
+}>(), { premios: () => [] })
 
 // Mais recentes primeiro (máx. 5)
 const ultimas = computed(() =>
@@ -52,7 +54,27 @@ function inicial(u: Utilizador | null) { return u?.name?.charAt(0).toUpperCase()
           </v-chip>
         </div>
       </template>
-      <p v-else class="text-body-2 text-medium-emphasis text-center py-3 mb-0">
+
+      <!-- Prémios por venceres (ninguém apostou em ti → o pote veio todo para ti) -->
+      <template v-if="premios.length">
+        <p class="text-caption text-medium-emphasis mt-3 mb-1">Prémios por venceres</p>
+        <div v-for="pr in premios" :key="pr.partidaId" class="d-flex align-center ga-3 py-2 aposta-linha">
+          <v-avatar size="34" color="accent">
+            <v-icon size="18" color="surface">mdi-trophy</v-icon>
+          </v-avatar>
+          <div class="flex-grow-1 carteira-info">
+            <div class="text-body-2 font-weight-bold text-truncate">
+              Venceste {{ pr.adversario?.name ? pr.adversario.name : 'a partida' }}
+            </div>
+            <div class="text-caption text-medium-emphasis">Ninguém apostou em ti — o pote foi todo para ti</div>
+          </div>
+          <v-chip color="success" size="small" variant="tonal" class="font-weight-bold flex-shrink-0">
+            <v-icon start size="14">mdi-cash-plus</v-icon>+{{ pr.valor }} 🪙
+          </v-chip>
+        </div>
+      </template>
+
+      <p v-if="!ultimas.length && !premios.length" class="text-body-2 text-medium-emphasis text-center py-3 mb-0">
         Ainda não apostaste. Quando houver um confronto no palco, podes apostar! 🪙
       </p>
     </v-card-text>

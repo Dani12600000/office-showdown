@@ -4,12 +4,14 @@
 import type { ParticipanteLobby, Partida } from '~/composables/useLobby'
 import type { Aposta, Utilizador } from '~/types/torneio'
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   participantes: ParticipanteLobby[]
   apostas: Aposta[]
   partidaDestaque: Partida | null
   perfilDe: (id: string | null) => Utilizador | null
-}>()
+  // Total de prémios de partida (pote ganho por venceres sem ninguém apostar em ti)
+  premioDe?: (utilizadorId: string) => number
+}>(), { premioDe: () => 0 })
 
 const aberto = ref(true)
 
@@ -41,6 +43,7 @@ const linhas = computed(() =>
       moedas: p.moedas,
       aposta: apostaNaDestaque(p.utilizador_id),
       lucro: lucroDe(p.utilizador_id),
+      premio: props.premioDe(p.utilizador_id),
       papel: papelDe(p),
     }))
     .sort((a, b) => b.moedas - a.moedas),
@@ -109,9 +112,14 @@ const nomeAlvo = (id: string | null) => props.perfilDe(id)?.name ?? '—'
                   {{ l.u?.name ?? '—' }}
                   <v-icon v-if="l.u?.is_bot" size="13" class="text-medium-emphasis">mdi-robot</v-icon>
                 </div>
-                <v-chip :color="l.papel.cor" size="x-small" variant="tonal" label class="mt-1">
-                  <v-icon start size="11">{{ l.papel.icon }}</v-icon>{{ l.papel.txt }}
-                </v-chip>
+                <div class="d-flex align-center flex-wrap ga-1 mt-1">
+                  <v-chip :color="l.papel.cor" size="x-small" variant="tonal" label>
+                    <v-icon start size="11">{{ l.papel.icon }}</v-icon>{{ l.papel.txt }}
+                  </v-chip>
+                  <v-chip v-if="l.premio > 0" color="accent" size="x-small" variant="tonal" label title="Pote ganho por vencer sem ninguém apostar nele">
+                    <v-icon start size="11">mdi-trophy</v-icon>+{{ l.premio }} 🪙 do pote
+                  </v-chip>
+                </div>
               </div>
             </div>
 

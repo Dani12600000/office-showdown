@@ -248,6 +248,27 @@ export const useLobby = (torneioId: string) => {
     }
   })
 
+  // Prémios de partida: quando o jogador VENCEU uma partida em que ninguém apostou
+  // nele, o pote inteiro (de quem apostou contra) foi-lhe entregue. Isto não gera
+  // registo de aposta, por isso calcula-se a partir das partidas + apostas — para
+  // a carteira poder mostrar de onde veio esse dinheiro.
+  const premiosPartida = (utilizadorId: string) => {
+    const out: { partidaId: string; valor: number; adversario: Utilizador | null }[] = []
+    for (const p of partidas.value) {
+      if (p.vencedor_id !== utilizadorId) continue
+      const desta = apostas.value.filter(a => a.partida_id === p.id)
+      const total = desta.reduce((s, a) => s + a.montante, 0)
+      if (total <= 0) continue
+      const noVencedor = desta
+        .filter(a => a.alvo_id === utilizadorId)
+        .reduce((s, a) => s + a.montante, 0)
+      if (noVencedor > 0) continue   // houve quem apostasse nele → pagamento normal
+      const advId = p.jogador1_id === utilizadorId ? p.jogador2_id : p.jogador1_id
+      out.push({ partidaId: p.id, valor: total, adversario: perfilDe(advId) })
+    }
+    return out
+  }
+
   const fecharApostas = async () => {
     const { error } = await supabase
       .from('torneios')
@@ -659,6 +680,7 @@ export const useLobby = (torneioId: string) => {
     nApostadores1, nApostadores2,
     minhaAposta,
     melhorApostador,
+    premiosPartida,
     fecharApostas,
     apostar,
     loading: readonly(loading),

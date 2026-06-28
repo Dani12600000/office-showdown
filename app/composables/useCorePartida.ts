@@ -123,7 +123,24 @@ export const useCorePartida = (partidaId: string, comoId?: Ref<string | null>) =
     useEventListener(document, 'visibilitychange', () => { if (!document.hidden) carregar() })
   }
 
-  onUnmounted(() => supabase.removeChannel(canal))
+  // Volta ao torneio automaticamente quando a partida acaba: mostra a vitória/
+  // derrota uns segundos e sai sozinho — evita ficar preso no ecrã final e
+  // dessincronizar do fluxo do torneio (o lobby leva-o à partida seguinte).
+  let voltarTimer: ReturnType<typeof setTimeout> | null = null
+  if (import.meta.client) {
+    watch(vitoriaVisivel, (v) => {
+      if (voltarTimer) { clearTimeout(voltarTimer); voltarTimer = null }
+      if (!v) return
+      const tid = partida.value?.torneio_id
+      if (!tid) return
+      voltarTimer = setTimeout(() => { navigateTo(`/torneio/${tid}`) }, 4500)
+    })
+  }
+
+  onUnmounted(() => {
+    supabase.removeChannel(canal)
+    if (voltarTimer) clearTimeout(voltarTimer)
+  })
 
   return {
     supabase, perfil, isAdmin, como,

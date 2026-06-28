@@ -17,7 +17,7 @@ const {
   partidaDestaque, destacarPartida, destacarAleatoria,
   apostas,
   apostasAbertas, poteJog1, poteJog2, nApostadores1, nApostadores2, minhaAposta, apostar, fecharApostas,
-  melhorApostador,
+  melhorApostador, premiosPartida,
   carregarLobby,
   confirmarJogador, moverParaPlateia, colocarPendente, expulsarParticipante, adicionarBot,
   definirMax, definirJogoRonda, definirPreferencia, definirMinhaPreferencia, preencherAteMax, sortearElenco,
@@ -290,6 +290,11 @@ const minhaPartidaAtivaEstaRonda = computed(() =>
 const minhasApostas = computed(() =>
   apostas.value.filter(a => a.apostador_id === euId.value)
 )
+// Prémios por venceres partidas em que ninguém apostou em ti (pote veio para ti)
+const meusPremios = computed(() => premiosPartida(euId.value ?? ''))
+// Total de prémios de partida de um utilizador (para o painel do anfitrião)
+const premioTotalDe = (utilizadorId: string) =>
+  premiosPartida(utilizadorId).reduce((s, p) => s + p.valor, 0)
 const meuResultadoApostas = computed(() => {
   if (!minhasApostas.value.length) return null
   const lucro = minhasApostas.value.reduce((s, a) => s + a.ganho, 0)
@@ -746,6 +751,7 @@ watch(() => minhaParticipacao.value, (agora, antes) => {
         :apostas="apostas"
         :partida-destaque="partidaDestaque"
         :perfil-de="perfilDe"
+        :premio-de="premioTotalDe"
       />
 
       <!-- ===== VISTA: CAMPEÃO ===== -->
@@ -921,6 +927,7 @@ watch(() => minhaParticipacao.value, (agora, antes) => {
           <CarteiraApostas
             :saldo="euParticipacao?.moedas ?? 0"
             :apostas="minhasApostas"
+            :premios="meusPremios"
             :perfil-de="perfilDe"
           />
         </template>
@@ -934,6 +941,7 @@ watch(() => minhaParticipacao.value, (agora, antes) => {
           <CarteiraApostas
             :saldo="euParticipacao?.moedas ?? 0"
             :apostas="minhasApostas"
+            :premios="meusPremios"
             :perfil-de="perfilDe"
           />
           <div class="mt-6">
