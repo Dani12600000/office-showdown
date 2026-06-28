@@ -392,12 +392,13 @@ async function confirmarExpulsao() {
 }
 
 // ---- Deteção: fui expulso ----
-// Se eu (utilizador real não-admin) tinha participação e ela desaparece enquanto
-// o torneio ainda existe, fui removido pelo organizador → mostra aviso.
-const fuiExpulso = ref(false)
+// Se eu tinha participação e ela desaparece enquanto o torneio ainda existe,
+// fui removido pelo organizador → volto à home com um aviso. (Se o torneio
+// foi apagado, torneio.value fica null e isto NÃO dispara.)
 watch(() => minhaParticipacao.value, (agora, antes) => {
-  if (isAdmin.value) return
-  if (antes && !agora && torneio.value) fuiExpulso.value = true
+  if (antes && !agora && torneio.value) {
+    navigateTo({ path: '/', query: { removido: torneio.value.nome || '1' } })
+  }
 })
 </script>
 
@@ -1156,22 +1157,6 @@ watch(() => minhaParticipacao.value, (agora, antes) => {
           <v-btn color="error" flex-grow-1 :loading="aExpulsar" prepend-icon="mdi-account-remove" @click="confirmarExpulsao">
             Expulsar
           </v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
-
-    <!-- Aviso: fui expulso -->
-    <v-dialog :model-value="fuiExpulso" max-width="400" persistent>
-      <v-card rounded="xl">
-        <v-card-text class="pa-8 text-center">
-          <v-icon size="60" color="error" class="mb-4">mdi-account-cancel-outline</v-icon>
-          <h3 class="text-h6 font-weight-bold mb-2">Foste removido</h3>
-          <p class="text-body-2 text-medium-emphasis">
-            O organizador removeu-te deste torneio. Se achas que foi engano, fala com ele.
-          </p>
-        </v-card-text>
-        <v-card-actions class="px-6 pb-6 pt-0">
-          <v-btn color="primary" block rounded="lg" prepend-icon="mdi-home" to="/">Voltar aos torneios</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>

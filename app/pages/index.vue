@@ -91,6 +91,20 @@ const inscrevendo = ref<string | null>(null)
 const mostrarErro = ref(false)
 const mensagemErro = ref('')
 
+// ---- Aviso de "foste removido" (vindo do lobby via ?removido=<nome>) ----
+const route = useRoute()
+const mostrarRemovido = ref(false)
+const torneioRemovido = ref('')
+onMounted(() => {
+  const r = route.query.removido
+  if (r) {
+    torneioRemovido.value = (typeof r === 'string' && r !== '1') ? r : ''
+    mostrarRemovido.value = true
+    // Limpa a query para não reaparecer ao recarregar
+    navigateTo({ path: '/', query: {} }, { replace: true })
+  }
+})
+
 async function entrarNoTorneio(torneio: TorneioCard) {
   inscrevendo.value = torneio.id
   try {
@@ -385,6 +399,15 @@ const participacaoConfig = {
       {{ mensagemErro }}
       <template #actions>
         <v-btn variant="text" @click="mostrarErro = false">Fechar</v-btn>
+      </template>
+    </v-snackbar>
+
+    <!-- Aviso: foste removido de um torneio -->
+    <v-snackbar v-model="mostrarRemovido" color="error" timeout="7000" location="top">
+      <v-icon start>mdi-account-cancel-outline</v-icon>
+      Foste removido {{ torneioRemovido ? `do torneio "${torneioRemovido}"` : 'do torneio' }} pelo organizador.
+      <template #actions>
+        <v-btn variant="text" @click="mostrarRemovido = false">Fechar</v-btn>
       </template>
     </v-snackbar>
 
