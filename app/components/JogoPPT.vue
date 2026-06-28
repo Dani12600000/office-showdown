@@ -52,6 +52,25 @@ watch(terminada, (fim) => {
   }
 })
 
+// ---- Suspense LOCAL do jogador (não mexe na BD) ----
+// A janela de revelação do servidor (revelar_ate) é longa de propósito (sincroniza
+// com o tambor do projetor). Mas o jogador no telemóvel não precisa de esperar tudo
+// a ver os punhos: mostramos o suspense só ~2s e revelamos já o resultado (mesmo que
+// a janela do servidor ainda esteja a decorrer). Aplica-se também à jogada decisiva.
+const SUSPENSE_MS = 2000
+const suspense = ref(false)
+let suspTimer: ReturnType<typeof setTimeout> | null = null
+watch(revelando, (r) => {
+  if (suspTimer) { clearTimeout(suspTimer); suspTimer = null }
+  if (r) {
+    suspense.value = true
+    suspTimer = setTimeout(() => { suspense.value = false }, SUSPENSE_MS)
+  } else {
+    suspense.value = false
+  }
+})
+onUnmounted(() => { if (suspTimer) clearTimeout(suspTimer) })
+
 const resultadoUltima = computed(() => {
   const u = ultimaJogada.value
   if (!u) return null
@@ -134,9 +153,9 @@ const torneioId = useRoute().params.id as string
     </div>
 
     <template v-else>
-      <!-- Resultado da última ronda (só DEPOIS da revelação — não estragar o suspense) -->
+      <!-- Resultado da última ronda (só DEPOIS do suspense local — não estragar a tensão) -->
       <v-expand-transition>
-        <div v-if="resultadoUltima && !revelando" class="text-center mb-6">
+        <div v-if="resultadoUltima && !suspense" class="text-center mb-6">
           <div class="d-flex align-center justify-center ga-6 mb-2">
             <div class="emoji-reveal text-blue">{{ emojiDe(ultimaJogada.e1) }}</div>
             <span class="text-medium-emphasis">vs</span>
@@ -146,17 +165,8 @@ const torneioId = useRoute().params.id as string
         </div>
       </v-expand-transition>
 
-      <div v-if="!mostrarControlos" class="text-center py-10">
-        <v-icon size="48" color="surface-variant" class="mb-3">{{ apostasAbertas ? 'mdi-cash-multiple' : 'mdi-television-off' }}</v-icon>
-        <h3 class="text-h6 font-weight-bold mb-1">{{ apostasAbertas ? 'Apostas a decorrer…' : 'Aguarda a tua vez no palco' }}</h3>
-        <p class="text-body-2 text-medium-emphasis">
-          {{ apostasAbertas
-            ? 'A plateia está a apostar. O jogo começa quando o apresentador fechar as apostas.'
-            : 'Os controlos só ficam disponíveis quando esta partida estiver a ser apresentada no projetor.' }}
-        </p>
-      </div>
-
-      <div v-else-if="revelando" class="text-center py-8">
+      <!-- Suspense (curto, local): punhos a abanar — vale para qualquer ronda, incl. a decisiva -->
+      <div v-if="suspense" class="text-center py-8">
         <p class="text-overline text-medium-emphasis mb-4" style="letter-spacing:3px !important">
           Pedra… Papel… Tesoura…
         </p>
@@ -166,6 +176,23 @@ const torneioId = useRoute().params.id as string
           <div class="punho punho--atraso">✊</div>
         </div>
         <p class="text-h6 font-weight-black mt-5 suspense-txt">Quem vai ganhar?! 🥁</p>
+      </div>
+
+      <div v-else-if="!mostrarControlos" class="text-center py-10">
+        <v-icon size="48" color="surface-variant" class="mb-3">{{ apostasAbertas ? 'mdi-cash-multiple' : 'mdi-television-off' }}</v-icon>
+        <h3 class="text-h6 font-weight-bold mb-1">{{ apostasAbertas ? 'Apostas a decorrer…' : 'Aguarda a tua vez no palco' }}</h3>
+        <p class="text-body-2 text-medium-emphasis">
+          {{ apostasAbertas
+            ? 'A plateia está a apostar. O jogo começa quando o apresentador fechar as apostas.'
+            : 'Os controlos só ficam disponíveis quando esta partida estiver a ser apresentada no projetor.' }}
+        </p>
+      </div>
+
+      <!-- Resultado já revelado, mas a janela do servidor ainda não fechou -->
+      <div v-else-if="revelando" class="text-center py-4">
+        <p class="text-body-2 text-medium-emphasis">
+          {{ terminada ? 'A apurar o vencedor…' : 'Próxima ronda já a seguir…' }}
+        </p>
       </div>
 
       <div v-else>
