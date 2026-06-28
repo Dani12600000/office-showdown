@@ -107,11 +107,12 @@ watch(apostasAbertas, (aberto, antes) => {
 })
 
 // ---- Som do projetor ----
-const { ativo: somAtivo, mudo, ativar: ativarSom, alternarMudo, tocarLoop, tocarStinger } = useProjetorAudio()
+const { ativo: somAtivo, mudo, ativar: ativarSom, alternarMudo, tocarLoop, tocarStinger, tocarVitoria } = useProjetorAudio()
 
-// Loop de fundo consoante a cena atual
-const cenaLoop = computed<LoopNome>(() => {
-  if (terminado.value) return 'campeao'
+// Loop de fundo consoante a cena atual. No FINAL devolve null — o som do campeão
+// é tratado à parte (vitoria.mp3 uma vez → vitoria_longa.mp3 em loop).
+const cenaLoop = computed<LoopNome | null>(() => {
+  if (terminado.value) return null
   if (emLobby.value)   return 'lobby'
   if (naArvore.value)  return 'confrontos'
   if (emJogo.value) {
@@ -122,6 +123,10 @@ const cenaLoop = computed<LoopNome>(() => {
   return 'lobby'
 })
 watch(cenaLoop, (l) => tocarLoop(l), { immediate: true })
+
+// Ecrã de campeão: remate vitoria.mp3 → loop vitoria_longa.mp3.
+// Reage a entrar em FINAL e a ativar o som já no ecrã de campeão.
+watch([terminado, somAtivo], ([fim]) => { if (fim) tocarVitoria() }, { immediate: true })
 
 // Stingers (one-shots)
 // Apresentar a partida (abrem as apostas) → som de início das apostas (comecar.mp3).
