@@ -36,6 +36,8 @@ const dest = computed(() => partidaDestaque.value)
 const j1 = computed(() => perfilDe(dest.value?.jogador1_id ?? null))
 const j2 = computed(() => perfilDe(dest.value?.jogador2_id ?? null))
 const jogoDestTipo = computed(() => dest.value ? jogoTipoDe(dest.value.ronda) : 'PPT')
+// Fase da Batalha Naval ('POSICIONAR' → barcos; 'COMBATE' → tiros). Usado para a música.
+const navalFase = computed<string>(() => (dest.value?.estado as any)?.fase ?? 'POSICIONAR')
 
 const inicial = (id: string | null) => perfilDe(id)?.name?.charAt(0).toUpperCase() ?? '?'
 
@@ -117,12 +119,22 @@ const cenaLoop = computed<LoopNome | null>(() => {
   if (naArvore.value)  return 'confrontos'
   if (emJogo.value) {
     if (apostasAbertas.value) return 'apostas'
-    if (dest.value)           return 'jogo'
+    if (dest.value) {
+      // Batalha Naval: música própria enquanto se POSICIONAM os barcos; ao entrar
+      // em COMBATE (deitar ao fundo) volta à música normal de jogo.
+      if (jogoDestTipo.value === 'NAVAL' && navalFase.value === 'POSICIONAR') return 'batalha_naval'
+      return 'jogo'
+    }
     return 'standby'
   }
   return 'lobby'
 })
-watch(cenaLoop, (l) => tocarLoop(l), { immediate: true })
+// No FINAL é o tocarVitoria() que controla o áudio (remate campeao.mp3 → loop
+// vitoria_longa.mp3) e já faz o fade-out da música anterior sozinho. Se deixássemos
+// o cenaLoop chamar tocarLoop(null) aqui, o seu reset a loopAtual=null corria DEPOIS
+// do tocarVitoria (cenaLoop é computed/preguiçoso) e a guarda do arranque do loop
+// abortava — daí o vitoria_longa só tocar após refresh.
+watch(cenaLoop, (l) => { if (!terminado.value) tocarLoop(l) }, { immediate: true })
 
 // Ecrã de campeão: remate vitoria.mp3 → loop vitoria_longa.mp3.
 // Reage a entrar em FINAL e a ativar o som já no ecrã de campeão.

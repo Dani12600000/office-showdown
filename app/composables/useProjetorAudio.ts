@@ -8,7 +8,7 @@
 //
 // Ficheiros em /public/sons/<nome>.mp3 — ver useProjetorAudio() abaixo.
 
-export type LoopNome = 'lobby' | 'confrontos' | 'apostas' | 'jogo' | 'standby' | 'campeao' | 'vitoria_longa'
+export type LoopNome = 'lobby' | 'confrontos' | 'apostas' | 'jogo' | 'batalha_naval' | 'standby' | 'campeao' | 'vitoria_longa'
 export type StingerNome = 'comecar' | 'intro-vs' | 'vitoria' | 'revelacao' | 'agua' | 'explosao'
 
 // Volume de cada loop (fundo discreto — não abafar a sala/apresentador)
@@ -17,6 +17,7 @@ const VOL_LOOP: Record<LoopNome, number> = {
   confrontos:    0.18,
   apostas:       0.40,
   jogo:          0.30,
+  batalha_naval: 0.30,
   standby:       0.28,
   campeao:       0.50,
   vitoria_longa: 0.50,
