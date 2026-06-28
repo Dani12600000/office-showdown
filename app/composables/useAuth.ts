@@ -37,16 +37,23 @@ export const useAuth = () => {
     }
   }
 
+  // Verifica se um username está livre (RPC security definer → funciona p/ anónimos).
+  // Devolve true se estiver disponível.
+  const usernameDisponivel = async (username: string): Promise<boolean> => {
+    const u = username.trim().toLowerCase()
+    if (!u) return false
+    const { data, error } = await (supabase as any).rpc('username_disponivel', { p_username: u })
+    if (error) throw new Error(error.message)
+    return data === true
+  }
+
   const signup = async (username: string, name: string, email: string, password: string): Promise<{ confirmacaoPendente: boolean }> => {
     const usernameClean = username.trim().toLowerCase()
 
-    const { data: existe } = await supabase
-      .from('profiles')
-      .select('id')
-      .eq('username', usernameClean)
-      .maybeSingle()
-
-    if (existe) throw new Error('Este username já está a ser utilizado.')
+    // Verificação amigável (a BD também garante via `username unique`).
+    if (!(await usernameDisponivel(usernameClean))) {
+      throw new Error('Este username já está a ser utilizado.')
+    }
 
     const { data: authData, error } = await supabase.auth.signUp({
       email: email.trim().toLowerCase(),
@@ -159,6 +166,7 @@ export const useAuth = () => {
     perfil: readonly(perfil),
     login,
     signup,
+    usernameDisponivel,
     logout,
     pedirResetPassword,
     atualizarPassword,

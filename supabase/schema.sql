@@ -62,6 +62,22 @@ $$;
 grant execute on function public.get_email_by_username(text) to anon, authenticated;
 
 
+-- RPC — Username disponível? (verificação no registo, acessível a anónimos)
+create or replace function public.username_disponivel(p_username text)
+returns boolean
+language sql
+security definer set search_path = public
+stable
+as $$
+  select not exists (
+    select 1 from public.profiles
+    where username = lower(trim(p_username))
+  );
+$$;
+
+grant execute on function public.username_disponivel(text) to anon, authenticated;
+
+
 -- ----------------------------------------------------------
 -- 3. TORNEIOS
 -- ----------------------------------------------------------
