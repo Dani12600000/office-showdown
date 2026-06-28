@@ -38,6 +38,30 @@ const jogoDestTipo = computed(() => dest.value ? jogoTipoDe(dest.value.ronda) : 
 
 const inicial = (id: string | null) => perfilDe(id)?.name?.charAt(0).toUpperCase() ?? '?'
 
+// ---- Escala dinâmica da grelha do lobby ----
+// Quanto mais participantes, mais pequenos os avatares — para caber tudo no TV
+// sem scroll. Devolve o tamanho do avatar (px) e a largura de cada item (px),
+// expostos como CSS vars no contentor da grelha.
+const lobbyEscala = computed(() => {
+  const n = participantes.value.length
+  // [limite, avatar, item, gap, fonte(rem)]
+  const tiers: [number, number, number, number, number][] = [
+    [8,  84, 104, 24, 0.875],
+    [16, 72,  92, 20, 0.8],
+    [24, 60,  78, 16, 0.72],
+    [32, 52,  68, 14, 0.66],
+    [48, 44,  58, 12, 0.6],
+    [Infinity, 38, 50, 10, 0.55],
+  ]
+  const [, av, item, gap, fonte] = tiers.find(t => n <= t[0])!
+  return {
+    '--av': `${av}px`,
+    '--item-w': `${item}px`,
+    '--gap': `${gap}px`,
+    '--nome': `${fonte}rem`,
+  } as Record<string, string>
+})
+
 // ---- Confetti (campeão) — só no cliente: confetti() acede ao DOM (document),
 //      e com { immediate: true } o watch dispara durante o SSR. Se o torneio já
 //      estiver em FINAL, isso rebentava o render no servidor ("document is not defined").
@@ -229,10 +253,10 @@ watch(() => dest.value?.revelar_ate, (r, o) => {
             <v-icon start>mdi-account-group</v-icon>{{ participantes.length }} dentro
           </v-chip>
         </div>
-        <div class="jogadores-lobby">
+        <div class="jogadores-lobby" :style="lobbyEscala">
           <div v-for="p in participantes" :key="p.id" class="text-center jogador-lobby">
             <v-avatar
-              size="84"
+              :size="lobbyEscala['--av']"
               color="primary"
               class="player-avatar mb-2"
               :class="{
@@ -244,11 +268,11 @@ watch(() => dest.value?.revelar_ate, (r, o) => {
               <v-img v-if="p.utilizador?.avatar_url" :src="p.utilizador.avatar_url" cover />
               <span v-else class="text-h5 font-weight-black text-surface">{{ p.utilizador?.name?.charAt(0).toUpperCase() }}</span>
             </v-avatar>
-            <div class="text-subtitle-2 font-weight-bold d-flex align-center justify-center ga-1">
-              <span>{{ p.utilizador?.name }}</span>
-              <v-icon v-if="p.utilizador?.is_bot" size="14" class="text-medium-emphasis">mdi-robot</v-icon>
+            <div class="nome-lobby font-weight-bold d-flex align-center justify-center ga-1">
+              <span class="text-truncate">{{ p.utilizador?.name }}</span>
+              <v-icon v-if="p.utilizador?.is_bot" size="14" class="text-medium-emphasis flex-shrink-0">mdi-robot</v-icon>
             </div>
-            <div class="text-caption mt-1">
+            <div class="legenda-lobby mt-1">
               <span v-if="p.status_inscricao === 'JOGADOR_CONFIRMADO'" class="text-success">
                 <v-icon size="12">mdi-sword-cross</v-icon> vai jogar
               </span>
@@ -399,7 +423,10 @@ watch(() => dest.value?.revelar_ate, (r, o) => {
 .player-avatar--plateia { outline-color: rgb(var(--v-theme-primary)); box-shadow: 0 0 20px rgba(0,229,255,0.4); }
 .player-avatar--pending { outline-color: rgba(255,255,255,0.2); }
 
-.jogador-lobby { width: 104px; }
+.jogador-lobby { width: var(--item-w, 104px); }
+.nome-lobby { font-size: var(--nome, 0.875rem); line-height: 1.15; max-width: 100%; }
+.nome-lobby .text-truncate { max-width: calc(var(--item-w, 104px) - 18px); }
+.legenda-lobby { font-size: calc(var(--nome, 0.875rem) * 0.82); line-height: 1.1; }
 
 .lobby-grid {
   display: grid;
@@ -436,12 +463,12 @@ watch(() => dest.value?.revelar_ate, (r, o) => {
   flex: 1;
   min-height: 0;
   width: 100%;
-  overflow-y: auto;
+  overflow: hidden;          /* sem scroll — a escala dinâmica garante que cabe */
   display: flex;
   flex-wrap: wrap;
   justify-content: center;   /* centra cada linha, incluindo a última */
   align-content: center;     /* centra o conjunto verticalmente na área */
-  gap: 24px 22px;
+  gap: var(--gap, 24px);
   padding: 4px 12px;
 }
 /* scrollbar discreta */
