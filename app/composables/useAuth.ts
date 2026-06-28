@@ -1,6 +1,30 @@
 import type { Utilizador } from '~/types/torneio'
 import type { Database } from '~/types/database.types'
 
+// Traduz mensagens de erro do Supabase (em inglês) para PT. Faz match por
+// substring (case-insensitive); se não houver tradução, devolve o original.
+const TRADUCOES_ERRO: [RegExp, string][] = [
+  [/invalid login credentials/i,                 'Credenciais inválidas. Verifica o username e a password.'],
+  [/email not confirmed/i,                       'Tens de confirmar o email antes de entrar. Verifica a tua caixa de correio.'],
+  [/user already registered/i,                   'Já existe uma conta com este email.'],
+  [/email address .* is invalid/i,               'O email é inválido.'],
+  [/invalid email/i,                             'O email é inválido.'],
+  [/password should be at least (\d+)/i,         'A password tem de ter pelo menos $1 caracteres.'],
+  [/(weak|insufficient).*password|password.*(weak|insufficient)/i, 'A password é demasiado fraca.'],
+  [/for security purposes.*(\d+) seconds/i,      'Por segurança, espera $1 segundos antes de tentar de novo.'],
+  [/email rate limit exceeded|over_email_send_rate_limit/i, 'Demasiados emails enviados. Tenta novamente mais tarde.'],
+  [/new password should be different/i,          'A nova password tem de ser diferente da atual.'],
+  [/token has expired or is invalid/i,           'O link expirou ou é inválido. Pede um novo.'],
+  [/same.*email|email address.*same/i,           'O novo email é igual ao atual.'],
+  [/network|failed to fetch/i,                   'Erro de ligação. Verifica a tua internet e tenta de novo.'],
+]
+const traduzErro = (msg: string): string => {
+  for (const [re, pt] of TRADUCOES_ERRO) {
+    if (re.test(msg)) return msg.replace(re, pt)
+  }
+  return msg
+}
+
 export const useAuth = () => {
   const supabase = useSupabaseClient<Database>()
   const supabaseUser = useSupabaseUser()
@@ -29,7 +53,7 @@ export const useAuth = () => {
       password,
     })
 
-    if (authError) throw new Error(authError.message)
+    if (authError) throw new Error(traduzErro(authError.message))
 
     // Carrega o perfil imediatamente após login (antes do navigateTo)
     if (authData.user) {
@@ -43,7 +67,7 @@ export const useAuth = () => {
     const u = username.trim().toLowerCase()
     if (!u) return false
     const { data, error } = await (supabase as any).rpc('username_disponivel', { p_username: u })
-    if (error) throw new Error(error.message)
+    if (error) throw new Error(traduzErro(error.message))
     return data === true
   }
 
@@ -64,7 +88,7 @@ export const useAuth = () => {
       },
     })
 
-    if (error) throw new Error(error.message)
+    if (error) throw new Error(traduzErro(error.message))
 
     // Só há sessão imediata se a confirmação de email estiver desativada no Supabase
     if (authData.session && authData.user) {
@@ -81,7 +105,7 @@ export const useAuth = () => {
       .from('profiles')
       .update(campos)
       .eq('id', perfil.value.id)
-    if (error) throw new Error(error.message)
+    if (error) throw new Error(traduzErro(error.message))
     perfil.value = { ...perfil.value, ...campos }
   }
 
@@ -100,7 +124,7 @@ export const useAuth = () => {
       .from('avatars')
       .upload(path, file, { upsert: true, contentType: file.type })
 
-    if (uploadError) throw new Error(uploadError.message)
+    if (uploadError) throw new Error(traduzErro(uploadError.message))
 
     // Gera URL pública e guarda no perfil
     const { data: { publicUrl } } = supabase.storage
@@ -123,12 +147,12 @@ export const useAuth = () => {
     const { error } = await supabase.auth.resetPasswordForEmail(email as string, {
       redirectTo: `${window.location.origin}/auth/confirm?next=/nova-password`,
     })
-    if (error) throw new Error(error.message)
+    if (error) throw new Error(traduzErro(error.message))
   }
 
   const atualizarPassword = async (novaPassword: string): Promise<void> => {
     const { error } = await supabase.auth.updateUser({ password: novaPassword })
-    if (error) throw new Error(error.message)
+    if (error) throw new Error(traduzErro(error.message))
   }
 
   // Alterar a password já autenticado (dentro do perfil). Reautentica com a
@@ -142,7 +166,7 @@ export const useAuth = () => {
     if (authError) throw new Error('A password atual está incorreta.')
 
     const { error } = await supabase.auth.updateUser({ password: novaPassword })
-    if (error) throw new Error(error.message)
+    if (error) throw new Error(traduzErro(error.message))
   }
 
   const alterarEmail = async (novoEmail: string): Promise<void> => {
@@ -150,7 +174,7 @@ export const useAuth = () => {
       email: novoEmail.trim().toLowerCase(),
       options: { emailRedirectTo: `${window.location.origin}/` },
     })
-    if (error) throw new Error(error.message)
+    if (error) throw new Error(traduzErro(error.message))
   }
 
   const logout = async (): Promise<void> => {

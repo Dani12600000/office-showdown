@@ -136,6 +136,20 @@ watch(introPartidaVisivel, (v, o) => { if (v && !o) tocarStinger('comecar') })
 watch(() => dest.value?.status, (s, o) => {
   if (s === 'TERMINADO' && o === 'A_JOGAR') tocarStinger('vitoria')
 })
+// Batalha Naval — SFX a cada tiro: água (plop) ou explosão (acerto/afundou).
+// Assinatura estável do último disparo (por:posição:resultado) para só tocar em
+// disparos NOVOS, e não a cada recarregamento do realtime.
+const navalUltimoSig = computed(() => {
+  if (jogoDestTipo.value !== 'NAVAL') return ''
+  const u = (dest.value?.estado as any)?.ultimo
+  return u ? `${u.por}:${u.pos}:${u.resultado}` : ''
+})
+watch(navalUltimoSig, (sig, antes) => {
+  if (!sig || sig === antes) return
+  const resultado = sig.split(':')[2]
+  tocarStinger(resultado === 'agua' ? 'agua' : 'explosao')
+})
+
 // Revelação (drumroll) — nova janela de revelação enquanto a partida ainda decorre
 watch(() => dest.value?.revelar_ate, (r, o) => {
   if (r && r !== o && dest.value?.status === 'A_JOGAR') tocarStinger('revelacao')
