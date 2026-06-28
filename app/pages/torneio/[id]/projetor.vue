@@ -203,32 +203,34 @@ watch(() => dest.value?.revelar_ate, (r, o) => {
     <Transition name="proj-fade" mode="out-in">
 
     <!-- ===== CAMPEÃO ===== -->
-    <div v-if="terminado" key="campiao" class="text-center py-6">
-      <p class="text-overline text-medium-emphasis" style="font-size:1.2rem !important">Campeão</p>
-      <v-avatar size="220" color="primary" class="champion-glow my-5">
+    <div v-if="terminado" key="campiao" class="text-center campeao-fim">
+      <p class="text-overline text-medium-emphasis" style="font-size:1rem !important">Campeão</p>
+      <v-avatar size="150" color="primary" class="champion-glow my-3">
         <v-img v-if="campeao?.avatar_url" :src="campeao.avatar_url" cover />
-        <span v-else class="font-weight-black text-surface" style="font-size:6rem">{{ campeao?.name?.charAt(0).toUpperCase() }}</span>
+        <span v-else class="font-weight-black text-surface" style="font-size:4rem">{{ campeao?.name?.charAt(0).toUpperCase() }}</span>
       </v-avatar>
-      <h1 class="font-weight-black" style="font-size:4.5rem; line-height:1">{{ campeao?.name }}</h1>
-      <v-icon size="56" color="accent" class="mt-3">mdi-trophy</v-icon>
+      <h1 class="font-weight-black d-flex align-center justify-center ga-3" style="font-size:3rem; line-height:1">
+        {{ campeao?.name }}
+        <v-icon size="40" color="accent">mdi-trophy</v-icon>
+      </h1>
 
       <!-- Pódio do fim: melhor apostador + QR de partilha -->
-      <div class="fim-grid mt-8">
+      <div class="fim-grid mt-5">
         <div v-if="melhorApostador" class="fim-card">
           <p class="text-overline text-medium-emphasis mb-2">🪙 Melhor apostador</p>
-          <v-avatar size="100" color="secondary" class="apostador-glow mb-3">
+          <v-avatar size="64" color="secondary" class="apostador-glow mb-2">
             <v-img v-if="melhorApostador.utilizador?.avatar_url" :src="melhorApostador.utilizador.avatar_url" cover />
-            <span v-else class="font-weight-black text-surface" style="font-size:2.6rem">{{ melhorApostador.utilizador?.name?.charAt(0).toUpperCase() }}</span>
+            <span v-else class="font-weight-black text-surface" style="font-size:1.8rem">{{ melhorApostador.utilizador?.name?.charAt(0).toUpperCase() }}</span>
           </v-avatar>
-          <h3 class="text-h5 font-weight-black">{{ melhorApostador.utilizador?.name }}</h3>
-          <div class="text-h6 font-weight-bold text-success mt-1">+{{ melhorApostador.ganho }} 🪙 de lucro</div>
-          <div class="text-body-1 text-medium-emphasis">{{ melhorApostador.moedas }} 🪙 no total · {{ melhorApostador.nApostas }} apostas</div>
+          <h3 class="text-h6 font-weight-black">{{ melhorApostador.utilizador?.name }}</h3>
+          <div class="text-body-1 font-weight-bold text-success mt-1">+{{ melhorApostador.ganho }} 🪙 de lucro</div>
+          <div class="text-body-2 text-medium-emphasis">{{ melhorApostador.moedas }} 🪙 no total · {{ melhorApostador.nApostas }} apostas</div>
         </div>
 
         <div class="fim-card">
-          <p class="text-overline text-medium-emphasis mb-3">📲 Vê e partilha o resultado</p>
-          <QrCode :value="urlResultado" :size="180" class="mx-auto" />
-          <p class="text-body-2 text-medium-emphasis mt-3">Aponta a câmara do telemóvel</p>
+          <p class="text-overline text-medium-emphasis mb-2">📲 Vê e partilha o resultado</p>
+          <QrCode :value="urlResultado" :size="130" class="mx-auto" />
+          <p class="text-caption text-medium-emphasis mt-2">Aponta a câmara do telemóvel</p>
         </div>
       </div>
     </div>
@@ -377,8 +379,17 @@ watch(() => dest.value?.revelar_ate, (r, o) => {
   transform: scale(1.02);
 }
 
+/* Ecrã de campeão — centrado e contido na altura útil (sem transbordar o TV) */
+.campeao-fim {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: calc(100vh - 200px);
+  min-height: 0;
+}
 .champion-glow {
-  box-shadow: 0 0 80px rgba(255, 214, 0, 0.7);
+  box-shadow: 0 0 60px rgba(255, 214, 0, 0.7);
   outline: 4px solid rgb(var(--v-theme-accent));
   outline-offset: 4px;
 }
@@ -401,19 +412,19 @@ watch(() => dest.value?.revelar_ate, (r, o) => {
   display: flex;
   justify-content: center;
   align-items: stretch;
-  gap: 40px;
+  gap: 28px;
   flex-wrap: wrap;
 }
 .fim-card {
   background: rgba(255,255,255,0.04);
   border: 1px solid rgba(255,255,255,0.1);
   border-radius: 20px;
-  padding: 24px 32px;
+  padding: 16px 28px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-width: 280px;
+  min-width: 240px;
 }
 .apostador-glow {
   outline: 3px solid rgb(var(--v-theme-secondary));
