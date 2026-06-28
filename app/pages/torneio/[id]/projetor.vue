@@ -83,7 +83,7 @@ if (import.meta.client) {
 
 // ---- Animações de transição ----
 
-// 1) ARVORE → JOGO: "OS JOGOS COMEÇAM!"
+// 1) ARVORE → JOGO: "QUE OS JOGOS COMEÇEM!"
 const inicioJogosVisivel = ref(false)
 watch(emJogo, (v, old) => {
   if (v && !old) inicioJogosVisivel.value = true

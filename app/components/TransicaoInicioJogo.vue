@@ -29,7 +29,7 @@ watch(() => props.visivel, async (v) => {
             <v-icon size="96" color="accent">mdi-trophy</v-icon>
           </div>
           <div class="inicio-titulo" :class="{ show: fase === 'mostrar' }">
-            OS JOGOS<br>COMEÇAM!
+            QUE OS JOGOS<br>COMEÇEM!
           </div>
           <div class="inicio-subtitulo" :class="{ show: fase === 'mostrar' }">
             Que o melhor vença
