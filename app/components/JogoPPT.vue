@@ -134,9 +134,9 @@ const torneioId = useRoute().params.id as string
     </div>
 
     <template v-else>
-      <!-- Resultado da última ronda -->
+      <!-- Resultado da última ronda (só DEPOIS da revelação — não estragar o suspense) -->
       <v-expand-transition>
-        <div v-if="resultadoUltima" class="text-center mb-6">
+        <div v-if="resultadoUltima && !revelando" class="text-center mb-6">
           <div class="d-flex align-center justify-center ga-6 mb-2">
             <div class="emoji-reveal text-blue">{{ emojiDe(ultimaJogada.e1) }}</div>
             <span class="text-medium-emphasis">vs</span>
@@ -157,9 +157,15 @@ const torneioId = useRoute().params.id as string
       </div>
 
       <div v-else-if="revelando" class="text-center py-8">
-        <v-icon size="40" color="primary" class="mb-2">mdi-eye</v-icon>
-        <p class="text-body-1 font-weight-medium">Revelação da jogada…</p>
-        <p class="text-caption text-medium-emphasis">A próxima ronda começa já de seguida.</p>
+        <p class="text-overline text-medium-emphasis mb-4" style="letter-spacing:3px !important">
+          Pedra… Papel… Tesoura…
+        </p>
+        <div class="d-flex align-center justify-center ga-8">
+          <div class="punho">✊</div>
+          <span class="text-h6 font-weight-black text-medium-emphasis">VS</span>
+          <div class="punho punho--atraso">✊</div>
+        </div>
+        <p class="text-h6 font-weight-black mt-5 suspense-txt">Quem vai ganhar?! 🥁</p>
       </div>
 
       <div v-else>
@@ -259,4 +265,24 @@ const torneioId = useRoute().params.id as string
 .escolha-card--disabled { opacity: 0.5; pointer-events: none; }
 .escolha-emoji { font-size: 44px; line-height: 1; }
 .emoji-reveal { font-size: 60px; line-height: 1; }
+
+/* Suspense da revelação: punhos a abanar (como num PPT a sério) */
+.punho {
+  font-size: 64px;
+  line-height: 1;
+  transform-origin: center bottom;
+  animation: punho-abana 0.5s ease-in-out infinite;
+}
+.punho--atraso { animation-delay: 0.06s; }
+@keyframes punho-abana {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  25%      { transform: translateY(-16px) rotate(-10deg); }
+  50%      { transform: translateY(0) rotate(0deg); }
+  75%      { transform: translateY(-16px) rotate(10deg); }
+}
+.suspense-txt { animation: suspense-pulsa 0.85s ease-in-out infinite; }
+@keyframes suspense-pulsa {
+  0%, 100% { opacity: 0.6; transform: scale(1); }
+  50%      { opacity: 1;   transform: scale(1.06); }
+}
 </style>
