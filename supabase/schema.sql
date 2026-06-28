@@ -80,6 +80,7 @@ create table public.torneios (
   jogos_ronda         jsonb not null
                         default '{"1":"PPT","2":"GALO","3":"QUATRO","4":"NAVAL"}'::jsonb,
   apostas_abertas     boolean not null default false,  -- janela de apostas da partida em destaque
+  inscricoes_abertas  boolean not null default true,   -- lobby aberto a novas entradas
   created_at          timestamptz not null default now()
 );
 
@@ -153,7 +154,16 @@ create policy "torneios_update_admin" on public.torneios
 create policy "participantes_select" on public.torneio_participantes
   for select using (auth.role() = 'authenticated');
 create policy "participantes_insert" on public.torneio_participantes
-  for insert with check (auth.role() = 'authenticated');
+  for insert with check (
+    auth.role() = 'authenticated'
+    and utilizador_id = auth.uid()
+    and exists (
+      select 1 from public.torneios t
+      where t.id = torneio_id
+        and t.status = 'LOBBY'
+        and coalesce(t.inscricoes_abertas, true)
+    )
+  );
 create policy "participantes_update_admin" on public.torneio_participantes
   for update using (
     exists (select 1 from public.profiles where id = auth.uid() and admin = true)

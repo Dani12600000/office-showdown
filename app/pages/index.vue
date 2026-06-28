@@ -309,7 +309,7 @@ const participacaoConfig = {
             </template>
 
             <!-- Pode inscrever-se em LOBBY — escolhe jogar/plateia já dentro -->
-            <template v-else-if="torneio.status === 'LOBBY'">
+            <template v-else-if="torneio.status === 'LOBBY' && ((torneio as any).inscricoes_abertas ?? true)">
               <v-btn
                 color="primary"
                 prepend-icon="mdi-login"
@@ -318,6 +318,17 @@ const participacaoConfig = {
                 @click="entrarNoTorneio(torneio)"
               >
                 Entrar
+              </v-btn>
+            </template>
+
+            <!-- LOBBY com inscrições fechadas -->
+            <template v-else-if="torneio.status === 'LOBBY'">
+              <v-btn
+                variant="tonal" color="surface-variant"
+                prepend-icon="mdi-door-closed-lock"
+                class="flex-grow-1" disabled
+              >
+                Inscrições fechadas
               </v-btn>
             </template>
 

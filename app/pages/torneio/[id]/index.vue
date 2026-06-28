@@ -10,7 +10,8 @@ const { isAdmin, perfil } = useAuth()
 const {
   torneio, loading, participantes,
   confirmados, pendentes, plateia, minhaParticipacao,
-  podeIniciar, maxJogadores, confirmadosCheios, jogoAtual, faseAtual,
+  podeIniciar, inscricoesAbertas, definirInscricoes,
+  maxJogadores, confirmadosCheios, jogoAtual, faseAtual,
   jogosRonda, jogoTipoDe, numRondas,
   partidasRonda, minhaPartida, rondaTerminada, perfilDe,
   partidaDestaque, destacarPartida, destacarAleatoria,
@@ -116,6 +117,13 @@ function comErro(fn: () => Promise<void>) {
 const mudarMax = (n: number) => comErro(() => definirMax(n))()
 const fazerPreencher = comErro(preencherAteMax)
 const fazerSortear = comErro(sortearElenco)
+const aAlternarInscricoes = ref(false)
+async function alternarInscricoes() {
+  aAlternarInscricoes.value = true
+  try { await definirInscricoes(!inscricoesAbertas.value) }
+  catch (e: any) { mensagemErro.value = e.message; mostrarErro.value = true }
+  finally { aAlternarInscricoes.value = false }
+}
 
 async function apresentar(partidaId: string) {
   try { await destacarPartida(partidaId) }
@@ -601,6 +609,28 @@ async function confirmarIniciar() {
               </v-btn>
             </div>
 
+            <!-- Abrir/fechar o lobby a novas entradas -->
+            <div class="mb-3">
+              <v-btn
+                :variant="inscricoesAbertas ? 'tonal' : 'flat'"
+                :color="inscricoesAbertas ? 'warning' : 'success'"
+                rounded="lg" size="small" block
+                :prepend-icon="inscricoesAbertas ? 'mdi-door-closed-lock' : 'mdi-door-open'"
+                :loading="aAlternarInscricoes"
+                @click="alternarInscricoes"
+              >
+                {{ inscricoesAbertas ? 'Fechar inscrições' : 'Abrir inscrições' }}
+              </v-btn>
+              <p class="text-caption text-medium-emphasis mt-1 mb-0">
+                <v-icon size="13" :color="inscricoesAbertas ? 'success' : 'warning'">
+                  {{ inscricoesAbertas ? 'mdi-door-open' : 'mdi-door-closed' }}
+                </v-icon>
+                {{ inscricoesAbertas
+                    ? 'Lobby aberto — qualquer pessoa pode entrar pelo QR.'
+                    : 'Lobby fechado — ninguém novo entra (fecha-se ao sortear elenco).' }}
+              </p>
+            </div>
+
             <!-- Iniciar -->
             <div class="d-flex flex-column flex-sm-row align-sm-center justify-space-between ga-3">
               <v-alert
@@ -1029,6 +1059,19 @@ async function confirmarIniciar() {
                     prefere {{ p.preferencia === 'PLATEIA' ? 'plateia' : 'jogar' }}
                   </div>
                 </div>
+                <template v-if="isAdmin">
+                  <v-btn
+                    icon="mdi-sword-cross" size="x-small" variant="text" color="success"
+                    :loading="emAcao === p.id" title="Mandar para o jogo"
+                    :disabled="confirmadosCheios"
+                    @click="acao(p.id, confirmarJogador)"
+                  />
+                  <v-btn
+                    icon="mdi-eye-outline" size="x-small" variant="text" color="primary"
+                    :loading="emAcao === p.id" title="Mandar para a plateia"
+                    @click="acao(p.id, moverParaPlateia)"
+                  />
+                </template>
               </v-card-text>
             </v-card>
           </TransitionGroup>

@@ -114,6 +114,19 @@ export const useLobby = (torneioId: string) => {
     torneio.value?.status === 'LOBBY'
   )
 
+  // Inscrições abertas: o lobby aceita novas entradas? (default true)
+  const inscricoesAbertas = computed(() => (torneio.value as any)?.inscricoes_abertas ?? true)
+
+  // Abrir/fechar o lobby a novas entradas (admin)
+  const definirInscricoes = async (aberta: boolean) => {
+    const { error } = await supabase
+      .from('torneios')
+      .update({ inscricoes_abertas: aberta } as any)
+      .eq('id', torneioId)
+    if (error) throw new Error(error.message)
+    await carregarLobby()
+  }
+
   // Config de jogos por ronda (escolhida pelo admin)
   const jogosRonda = computed<Record<string, JogoTipo>>(() =>
     (torneio.value?.jogos_ronda as any) ?? JOGOS_RONDA_DEFAULT
@@ -445,6 +458,11 @@ export const useLobby = (torneioId: string) => {
       const novo: StatusInscricao = dentro.has(p.id) ? 'JOGADOR_CONFIRMADO' : 'PLATEIA'
       if (p.status_inscricao !== novo) await setStatus(p.id, novo)
     }
+    // Sortear o elenco fecha automaticamente as inscrições (lobby pronto).
+    await supabase
+      .from('torneios')
+      .update({ inscricoes_abertas: false } as any)
+      .eq('id', torneioId)
     await carregarLobby()
   }
 
@@ -592,6 +610,8 @@ export const useLobby = (torneioId: string) => {
     plateia,
     minhaParticipacao,
     podeIniciar,
+    inscricoesAbertas,
+    definirInscricoes,
     maxJogadores,
     confirmadosCheios,
     jogoAtual,

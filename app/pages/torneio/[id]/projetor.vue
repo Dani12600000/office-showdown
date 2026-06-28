@@ -17,6 +17,7 @@ const {
   torneio, loading,
   participantes, partidasRonda, perfilDe, partidaDestaque,
   faseAtual, jogoAtual, jogoTipoDe,
+  inscricoesAbertas,
   apostasAbertas, poteJog1, poteJog2, nApostadores1, nApostadores2,
   melhorApostador,
   carregarLobby,
@@ -246,8 +247,9 @@ watch(() => dest.value?.revelar_ate, (r, o) => {
 
       <div class="jogadores-painel">
         <div class="d-flex ga-2 mb-5 flex-wrap justify-center flex-shrink-0">
-          <v-chip size="large" color="success">
-            <v-icon start>mdi-door-open</v-icon>Inscrições abertas
+          <v-chip size="large" :color="inscricoesAbertas ? 'success' : 'surface-variant'">
+            <v-icon start>{{ inscricoesAbertas ? 'mdi-door-open' : 'mdi-door-closed-lock' }}</v-icon>
+            {{ inscricoesAbertas ? 'Inscrições abertas' : 'Inscrições fechadas' }}
           </v-chip>
           <v-chip size="large" variant="tonal" color="primary">
             <v-icon start>mdi-account-group</v-icon>{{ participantes.length }} dentro
