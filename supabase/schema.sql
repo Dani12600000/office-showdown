@@ -925,6 +925,12 @@ begin
       from public.apostas where partida_id = new.id and alvo_id = new.vencedor_id;
 
     if v_pool_venc = 0 then
+      -- Ninguém apostou no vencedor → o pote inteiro vai para o jogador vencedor.
+      if new.vencedor_id is not null then
+        update public.torneio_participantes
+          set moedas = moedas + v_pool_total
+          where torneio_id = new.torneio_id and utilizador_id = new.vencedor_id;
+      end if;
       update public.apostas set liquidada = true, ganho = -montante
         where partida_id = new.id and not liquidada;
       return new;
