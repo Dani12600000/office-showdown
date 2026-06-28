@@ -642,7 +642,9 @@ async function confirmarIniciar() {
               >
                 {{ confirmados.length > maxJogadores
                     ? `Tens ${confirmados.length} confirmados — o máximo é ${maxJogadores}. Usa "Sortear elenco".`
-                    : 'Mínimo 2 jogadores confirmados para iniciar.' }}
+                    : pendentes.length > 0
+                      ? `Ainda há ${pendentes.length} a aguardar — manda cada um para o jogo ou plateia (ou usa "Sortear elenco").`
+                      : 'Mínimo 2 jogadores confirmados para iniciar.' }}
               </v-alert>
               <v-spacer v-else />
               <v-btn

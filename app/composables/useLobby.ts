@@ -111,6 +111,7 @@ export const useLobby = (torneioId: string) => {
   const podeIniciar = computed(() =>
     confirmados.value.length >= 2 &&
     confirmados.value.length <= maxJogadores.value &&
+    pendentes.value.length === 0 &&        // ninguém por decidir (jogo/plateia)
     torneio.value?.status === 'LOBBY'
   )
 
