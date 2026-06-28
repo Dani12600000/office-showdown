@@ -194,13 +194,16 @@ const resultado = computed(() => {
           <!-- "Já apostei tudo o que queria" — avisa o anfitrião que pode fechar -->
           <v-divider class="my-4" />
           <v-btn
-            :color="euPronto ? 'success' : 'surface-variant'"
-            :variant="euPronto ? 'flat' : 'tonal'"
+            :color="euPronto ? 'success' : 'primary'"
+            variant="flat"
+            size="large"
             rounded="lg" block
+            class="btn-pronto"
+            :class="{ 'btn-pronto--ativo': euPronto }"
             :prepend-icon="euPronto ? 'mdi-check-circle' : 'mdi-hand-back-right'"
             @click="emit('pronto', !euPronto)"
           >
-            {{ euPronto ? 'Estás pronto — toca para voltar atrás' : 'Já apostei tudo o que queria' }}
+            {{ euPronto ? 'Estou pronto — toca para voltar atrás' : 'Já apostei tudo o que queria' }}
           </v-btn>
           <p class="text-center text-caption text-medium-emphasis mt-2">
             {{ prontos }} de {{ total }} a aguardar o apresentador
@@ -215,6 +218,22 @@ const resultado = computed(() => {
 
 <style scoped>
 .aposta-card { border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.02); }
+
+/* Botão "Já apostei tudo o que queria" — bem visível e a pulsar para chamar a
+   atenção enquanto ainda não está marcado; estável (verde) depois de marcado. */
+.btn-pronto {
+  font-weight: 800;
+  letter-spacing: 0.2px;
+  animation: pulso-pronto 1.8s ease-in-out infinite;
+}
+.btn-pronto--ativo { animation: none; }
+@keyframes pulso-pronto {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(0, 229, 255, 0.45); }
+  50%      { box-shadow: 0 0 0 7px rgba(0, 229, 255, 0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .btn-pronto { animation: none; box-shadow: 0 0 18px rgba(0, 229, 255, 0.45); }
+}
 
 .pote-bar { display: flex; height: 26px; border-radius: 8px; overflow: hidden; background: rgba(255,255,255,0.05); }
 .pote-lado { display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 800; transition: width 0.4s ease; min-width: 0; }
