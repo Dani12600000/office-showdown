@@ -56,6 +56,9 @@ defineOgImageComponent('Campeao', {
   nome: campeao.value?.name ?? '',
   torneio: nome.value,
   avatar: campeao.value?.avatar_url ?? null,
+  apostador: melhor.value?.name ?? null,
+  apostadorAvatar: melhor.value?.avatar_url ?? null,
+  apostadorGanho: melhor.value?.ganho ?? null,
 })
 
 // ---- Botões de partilha ----
