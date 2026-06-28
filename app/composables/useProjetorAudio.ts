@@ -89,9 +89,11 @@ export function useProjetorAudio() {
     elAtual = el
   }
 
-  // Sequência do ecrã de campeão: toca `vitoria.mp3` UMA vez (remate) e, quando
-  // acabar, arranca `vitoria_longa.mp3` em loop (música de fundo da vitória).
+  // Sequência do ecrã de campeão: toca `campeao.mp3` UMA vez (remate exclusivo
+  // deste ecrã) e, quando acabar, arranca `vitoria_longa.mp3` em loop (música de
+  // fundo). O `vitoria.mp3` é outra coisa — é o stinger de cada partida.
   // É idempotente — chamar de novo enquanto já está nesta cena não faz nada.
+  let vitoriaTimer: ReturnType<typeof setTimeout> | null = null
   const tocarVitoria = () => {
     pedido = 'vitoria_longa'
     if (!ativo.value) return
@@ -103,8 +105,12 @@ export function useProjetorAudio() {
     if (antigo) fade(antigo, 0, () => antigo.pause())
     elAtual = null
 
+    let arrancou = false
     const arrancarLoop = () => {
-      if (loopAtual !== 'vitoria_longa') return   // mudou de cena entretanto
+      if (arrancou) return                         // só uma vez (ended OU timer)
+      if (loopAtual !== 'vitoria_longa') return    // mudou de cena entretanto
+      arrancou = true
+      if (vitoriaTimer) { clearTimeout(vitoriaTimer); vitoriaTimer = null }
       const el = obter('vitoria_longa', true)
       el.muted = mudo.value
       el.volume = 0
@@ -113,13 +119,21 @@ export function useProjetorAudio() {
       elAtual = el
     }
 
-    const intro = obter('vitoria', false)
+    const intro = obter('campeao', false)
     intro.muted = mudo.value
     intro.volume = VOL_STINGER
     intro.onended = arrancarLoop
     try { intro.currentTime = 0 } catch {}
-    // Se o one-shot não tocar (bloqueio/erro), arranca o loop à mesma.
-    intro.play().catch(() => { arrancarLoop() })
+    // Rede de segurança: caso o evento `ended` do <audio> não dispare, arranca
+    // o loop por timer com base na duração do ficheiro.
+    if (vitoriaTimer) { clearTimeout(vitoriaTimer); vitoriaTimer = null }
+    intro.play()
+      .then(() => {
+        const durSeg = isFinite(intro.duration) && intro.duration > 0 ? intro.duration : 5
+        if (vitoriaTimer) clearTimeout(vitoriaTimer)
+        vitoriaTimer = setTimeout(arrancarLoop, durSeg * 1000 + 400)
+      })
+      .catch(() => { arrancarLoop() })   // não tocou → loop já
   }
 
   // Toca um stinger (one-shot) por cima do loop atual.
@@ -151,6 +165,7 @@ export function useProjetorAudio() {
   }
 
   onUnmounted(() => {
+    if (vitoriaTimer) clearTimeout(vitoriaTimer)
     cache.forEach(el => { try { el.pause() } catch {} })
     cache.clear()
   })
