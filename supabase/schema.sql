@@ -184,6 +184,10 @@ create policy "participantes_update_admin" on public.torneio_participantes
   for update using (
     exists (select 1 from public.profiles where id = auth.uid() and admin = true)
   );
+create policy "participantes_delete_admin" on public.torneio_participantes
+  for delete using (
+    exists (select 1 from public.profiles where id = auth.uid() and admin = true)
+  );
 
 -- Partidas
 create policy "partidas_select" on public.partidas

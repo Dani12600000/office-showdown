@@ -399,6 +399,19 @@ export const useLobby = (torneioId: string) => {
   const moverParaPlateia = (id: string) => atualizarStatus(id, 'PLATEIA')
   const colocarPendente  = (id: string) => atualizarStatus(id, 'QUER_JOGAR')
 
+  // Expulsar um participante do torneio (admin). Apaga a linha de inscrição;
+  // se for um utilizador real, o seu cliente deteta a remoção e mostra aviso.
+  const expulsarParticipante = async (participanteId: string) => {
+    const { data, error } = await supabase
+      .from('torneio_participantes')
+      .delete()
+      .eq('id', participanteId)
+      .select('id')
+    if (error) throw new Error(error.message)
+    if (!data?.length) throw new Error('Não foi possível expulsar. Verifica as permissões de admin.')
+    await carregarLobby()
+  }
+
   // Update sem reload (para operações em lote)
   const setStatus = async (id: string, status: StatusInscricao) => {
     const { error } = await supabase
@@ -653,6 +666,7 @@ export const useLobby = (torneioId: string) => {
     confirmarJogador,
     moverParaPlateia,
     colocarPendente,
+    expulsarParticipante,
     adicionarBot,
     definirMax,
     definirJogoRonda,

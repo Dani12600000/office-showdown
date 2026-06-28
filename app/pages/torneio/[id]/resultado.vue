@@ -85,10 +85,6 @@ async function partilhar() {
     setTimeout(() => { copiado.value = false }, 2500)
   } catch { /* sem permissão */ }
 }
-function partilharWhatsApp() {
-  const txt = encodeURIComponent(`${textoPartilha.value} ${urlAtual.value}`)
-  window.open(`https://wa.me/?text=${txt}`, '_blank')
-}
 </script>
 
 <template>
@@ -132,9 +128,6 @@ function partilharWhatsApp() {
         <div class="d-flex flex-wrap justify-center ga-2">
           <v-btn color="primary" variant="flat" rounded="pill" prepend-icon="mdi-share-variant" @click="partilhar">
             Partilhar
-          </v-btn>
-          <v-btn color="green" variant="tonal" rounded="pill" prepend-icon="mdi-whatsapp" @click="partilharWhatsApp">
-            WhatsApp
           </v-btn>
         </div>
         <v-fade-transition>

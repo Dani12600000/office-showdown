@@ -19,7 +19,7 @@ const {
   apostasAbertas, poteJog1, poteJog2, nApostadores1, nApostadores2, minhaAposta, apostar, fecharApostas,
   melhorApostador,
   carregarLobby,
-  confirmarJogador, moverParaPlateia, colocarPendente, adicionarBot,
+  confirmarJogador, moverParaPlateia, colocarPendente, expulsarParticipante, adicionarBot,
   definirMax, definirJogoRonda, definirPreferencia, definirMinhaPreferencia, preencherAteMax, sortearElenco,
   iniciarTorneio, comecarJogos, avancarRonda,
 } = useLobby(torneioId)
@@ -189,11 +189,6 @@ async function partilhar() {
     copiado.value = true
     setTimeout(() => { copiado.value = false }, 2500)
   } catch { /* sem permissão */ }
-}
-
-function partilharWhatsApp() {
-  const txt = encodeURIComponent(`${partilhaTexto.value} ${urlPartilha.value}`)
-  window.open(`https://wa.me/?text=${txt}`, '_blank')
 }
 
 // ---- Vista focada do jogador (não-admin) durante ARVORE/JOGO ----
@@ -376,6 +371,34 @@ async function confirmarIniciar() {
   try { await iniciarTorneio(); dialogIniciar.value = false }
   finally { aIniciar.value = false }
 }
+
+// ---- Expulsar participante (admin) ----
+const expulsarAlvo = ref<{ id: string; nome: string } | null>(null)
+const aExpulsar = ref(false)
+function pedirExpulsar(p: { id: string; utilizador?: { name?: string } | null }) {
+  expulsarAlvo.value = { id: p.id, nome: p.utilizador?.name ?? 'este participante' }
+}
+async function confirmarExpulsao() {
+  if (!expulsarAlvo.value) return
+  aExpulsar.value = true
+  try {
+    await expulsarParticipante(expulsarAlvo.value.id)
+    expulsarAlvo.value = null
+  } catch (e: any) {
+    mensagemErro.value = e.message; mostrarErro.value = true
+  } finally {
+    aExpulsar.value = false
+  }
+}
+
+// ---- Deteção: fui expulso ----
+// Se eu (utilizador real não-admin) tinha participação e ela desaparece enquanto
+// o torneio ainda existe, fui removido pelo organizador → mostra aviso.
+const fuiExpulso = ref(false)
+watch(() => minhaParticipacao.value, (agora, antes) => {
+  if (isAdmin.value) return
+  if (antes && !agora && torneio.value) fuiExpulso.value = true
+})
 </script>
 
 <template>
@@ -780,9 +803,6 @@ async function confirmarIniciar() {
             <v-btn color="primary" variant="flat" rounded="pill" prepend-icon="mdi-share-variant" @click="partilhar">
               Partilhar
             </v-btn>
-            <v-btn color="green" variant="tonal" rounded="pill" prepend-icon="mdi-whatsapp" @click="partilharWhatsApp">
-              WhatsApp
-            </v-btn>
           </div>
           <v-fade-transition>
             <p v-if="copiado" class="text-caption text-success mt-3">
@@ -1009,6 +1029,7 @@ async function confirmarIniciar() {
                 <template v-if="isAdmin">
                   <v-btn icon="mdi-undo" size="x-small" variant="text" color="warning" :loading="emAcao === p.id" title="Devolver a pendentes" @click="acao(p.id, colocarPendente)" />
                   <v-btn icon="mdi-eye-outline" size="x-small" variant="text" color="primary" :loading="emAcao === p.id" title="Mover para plateia" @click="acao(p.id, moverParaPlateia)" />
+                  <v-btn v-if="p.utilizador_id !== perfil?.id" icon="mdi-account-remove-outline" size="x-small" variant="text" color="error" title="Expulsar do torneio" @click="pedirExpulsar(p)" />
                 </template>
               </v-card-text>
             </v-card>
@@ -1074,6 +1095,12 @@ async function confirmarIniciar() {
                     :loading="emAcao === p.id" title="Mandar para a plateia"
                     @click="acao(p.id, moverParaPlateia)"
                   />
+                  <v-btn
+                    v-if="p.utilizador_id !== perfil?.id"
+                    icon="mdi-account-remove-outline" size="x-small" variant="text" color="error"
+                    title="Expulsar do torneio"
+                    @click="pedirExpulsar(p)"
+                  />
                 </template>
               </v-card-text>
             </v-card>
@@ -1103,7 +1130,8 @@ async function confirmarIniciar() {
                 <span v-else style="font-size:9px;font-weight:800">{{ p.utilizador?.name?.charAt(0).toUpperCase() }}</span>
               </v-avatar>
               {{ p.utilizador?.name }}
-              <v-icon v-if="isAdmin" end size="13" class="cursor-pointer" @click="acao(p.id, colocarPendente)">mdi-undo</v-icon>
+              <v-icon v-if="isAdmin" end size="13" class="cursor-pointer" title="Devolver a pendentes" @click="acao(p.id, colocarPendente)">mdi-undo</v-icon>
+              <v-icon v-if="isAdmin && p.utilizador_id !== perfil?.id" end size="13" class="cursor-pointer text-error" title="Expulsar do torneio" @click="pedirExpulsar(p)">mdi-account-remove-outline</v-icon>
             </v-chip>
           </div>
           <p v-else class="text-body-2 text-medium-emphasis py-2">Nenhum espectador ainda.</p>
@@ -1111,6 +1139,42 @@ async function confirmarIniciar() {
         </v-col>
       </v-row>
     </v-container>
+
+    <!-- Dialog expulsar -->
+    <v-dialog :model-value="!!expulsarAlvo" max-width="380" @update:model-value="expulsarAlvo = null">
+      <v-card rounded="xl">
+        <v-card-text class="pa-8 text-center">
+          <v-icon size="56" color="error" class="mb-4">mdi-account-remove-outline</v-icon>
+          <h3 class="text-h6 font-weight-bold mb-2">Expulsar do torneio?</h3>
+          <p class="text-body-2 text-medium-emphasis">
+            <strong class="text-white">{{ expulsarAlvo?.nome }}</strong> será removido do torneio.
+            Se for uma pessoa real, verá um aviso. Pode voltar a inscrever-se se as inscrições estiverem abertas.
+          </p>
+        </v-card-text>
+        <v-card-actions class="px-6 pb-6 pt-0 ga-3">
+          <v-btn variant="text" flex-grow-1 @click="expulsarAlvo = null">Cancelar</v-btn>
+          <v-btn color="error" flex-grow-1 :loading="aExpulsar" prepend-icon="mdi-account-remove" @click="confirmarExpulsao">
+            Expulsar
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <!-- Aviso: fui expulso -->
+    <v-dialog :model-value="fuiExpulso" max-width="400" persistent>
+      <v-card rounded="xl">
+        <v-card-text class="pa-8 text-center">
+          <v-icon size="60" color="error" class="mb-4">mdi-account-cancel-outline</v-icon>
+          <h3 class="text-h6 font-weight-bold mb-2">Foste removido</h3>
+          <p class="text-body-2 text-medium-emphasis">
+            O organizador removeu-te deste torneio. Se achas que foi engano, fala com ele.
+          </p>
+        </v-card-text>
+        <v-card-actions class="px-6 pb-6 pt-0">
+          <v-btn color="primary" block rounded="lg" prepend-icon="mdi-home" to="/">Voltar aos torneios</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
 
     <!-- Dialog iniciar -->
     <v-dialog v-model="dialogIniciar" max-width="380">
