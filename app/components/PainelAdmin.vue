@@ -182,14 +182,14 @@ watch(tab, (v) => {
               <v-progress-circular indeterminate color="primary" size="36" />
             </div>
 
-            <v-list v-else lines="two" rounded="lg">
+            <v-list v-else rounded="lg">
               <v-list-item
                 v-for="u in utilizadoresFiltrados"
                 :key="u.id"
-                :subtitle="'@' + u.username"
+                class="py-2"
               >
                 <template #prepend>
-                  <v-avatar size="40" color="primary" class="mr-3">
+                  <v-avatar size="40" color="primary" class="mr-3 flex-shrink-0">
                     <v-img v-if="u.avatar_url" :src="u.avatar_url" />
                     <span v-else class="text-body-2 font-weight-bold text-surface">
                       {{ u.name?.charAt(0).toUpperCase() }}
@@ -198,8 +198,14 @@ watch(tab, (v) => {
                 </template>
 
                 <template #title>
-                  <span class="font-weight-medium">{{ u.name }}</span>
-                  <v-chip v-if="u.admin" color="accent" size="x-small" label class="ml-2">Admin</v-chip>
+                  <div class="text-truncate font-weight-medium">{{ u.name }}</div>
+                  <div class="text-caption text-medium-emphasis text-truncate">@{{ u.username }}</div>
+                  <div class="d-flex align-center flex-wrap ga-1 mt-1">
+                    <v-chip v-if="u.id === perfilAtual?.id" color="primary" size="x-small" label>Tu</v-chip>
+                    <v-chip v-if="u.admin" color="accent" size="x-small" label>
+                      <v-icon start size="11">mdi-shield-crown</v-icon>Admin
+                    </v-chip>
+                  </div>
                 </template>
 
                 <template #append>
@@ -208,6 +214,7 @@ watch(tab, (v) => {
                     color="accent"
                     hide-details
                     density="compact"
+                    class="flex-shrink-0"
                     :disabled="u.id === perfilAtual?.id || togglingId === u.id"
                     :loading="togglingId === u.id"
                     @update:model-value="toggleAdmin(u)"
@@ -227,3 +234,12 @@ watch(tab, (v) => {
     </v-card>
   </v-dialog>
 </template>
+
+<style scoped>
+/* O slot de título tem várias linhas (nome + @username + chips). Por defeito o
+   .v-list-item-title é nowrap/overflow-hidden e cortaria as chips — libertamos. */
+:deep(.v-list-item-title) {
+  white-space: normal;
+  overflow: visible;
+}
+</style>
