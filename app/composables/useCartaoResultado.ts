@@ -161,8 +161,8 @@ export async function gerarCartaoResultado(d: DadosCartao): Promise<Blob | null>
   // Avatar mais pequeno e posições adaptadas a haver (ou não) maior apostador,
   // para sobrar espaço confortável ao cartão de baixo.
   const avR = temApostador ? 124 : 145
-  const labelY = temApostador ? 368 : 400
-  const campCy = temApostador ? 530 : 600
+  const labelY = temApostador ? 432 : 400
+  const campCy = 600
   const nomeY = campCy + avR + (temApostador ? 104 : 118)
   const torneioY = nomeY + 56
 
