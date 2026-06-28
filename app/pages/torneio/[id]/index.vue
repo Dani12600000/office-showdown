@@ -46,6 +46,17 @@ const comoParticipante = computed(() =>
     : null
 )
 
+// Identidade "ativa": normalmente sou eu; mas se ?como= estiver presente (admin a
+// personificar um bot), passo a AGIR COMO esse bot — apostar, ver carteira, etc.,
+// tal como já personifico para jogar. Para um jogador real não-admin é sempre ele.
+// Regra de ouro: bots = jogadores reais (também nas apostas, mesmo eliminados).
+const personificando = computed(() => !!comoLobbyId.value)
+const euId = computed(() => comoLobbyId.value ?? perfil.value?.id ?? null)
+const euParticipacao = computed(() =>
+  participantes.value.find(p => p.utilizador_id === euId.value) ?? null
+)
+const euPerfil = computed(() => euParticipacao.value?.utilizador ?? perfil.value ?? null)
+
 // Vista de escolha para utilizadores reais (não-admin) inscritos num torneio em LOBBY.
 // Mesma UI que os bots usam — picker entre Jogar / Plateia.
 const minhaParticipacaoNoLobby = computed(() => {
@@ -182,11 +193,11 @@ function partilharWhatsApp() {
 // a sua própria partida (ou estado eliminado/plateia).
 const minhaPartidaDestaRonda = computed(() =>
   partidasRonda.value.find(p =>
-    p.jogador1_id === perfil.value?.id || p.jogador2_id === perfil.value?.id
+    p.jogador1_id === euId.value || p.jogador2_id === euId.value
   ) ?? null
 )
 const sou1NaMinhaPartida = computed(() =>
-  minhaPartidaDestaRonda.value?.jogador1_id === perfil.value?.id
+  minhaPartidaDestaRonda.value?.jogador1_id === euId.value
 )
 const meuAdversario = computed(() => {
   const m = minhaPartidaDestaRonda.value
@@ -216,20 +227,28 @@ watch(minhaPartidaEmDestaque, (emPalco) => {
 }, { immediate: true })
 const ganhei = computed(() =>
   minhaPartidaDestaRonda.value?.status === 'TERMINADO' &&
-  minhaPartidaDestaRonda.value?.vencedor_id === perfil.value?.id
+  minhaPartidaDestaRonda.value?.vencedor_id === euId.value
 )
 const perdi = computed(() =>
   minhaPartidaDestaRonda.value?.status === 'TERMINADO' &&
-  minhaPartidaDestaRonda.value?.vencedor_id !== perfil.value?.id
+  minhaPartidaDestaRonda.value?.vencedor_id !== euId.value
 )
 // ---- Apostas ----
 const destJ1 = computed(() => perfilDe(partidaDestaque.value?.jogador1_id ?? null))
 const destJ2 = computed(() => perfilDe(partidaDestaque.value?.jogador2_id ?? null))
 
 async function fazerAposta(alvoId: string, montante: number) {
-  try { await apostar(alvoId, montante) }
+  // Se estou a personificar um bot, aposto em nome dele (a RPC valida que sou admin).
+  try { await apostar(alvoId, montante, personificando.value ? euId.value ?? undefined : undefined) }
   catch (e: any) { mensagemErro.value = e.message; mostrarErro.value = true }
 }
+
+// A aposta da identidade ativa na partida em destaque (eu ou o bot personificado)
+const euAposta = computed(() =>
+  apostas.value.find(a =>
+    a.partida_id === partidaDestaque.value?.id && a.apostador_id === euId.value
+  ) ?? null
+)
 
 const aFechar = ref(false)
 async function fazerFecharApostas() {
@@ -239,22 +258,24 @@ async function fazerFecharApostas() {
   finally { aFechar.value = false }
 }
 const fuiEliminadoAntes = computed(() =>
-  minhaParticipacao.value?.status_inscricao === 'JOGADOR_CONFIRMADO' &&
+  euParticipacao.value?.status_inscricao === 'JOGADOR_CONFIRMADO' &&
   !minhaPartidaDestaRonda.value
 )
 
 // ---- Quem pode apostar ----
-// Sou um dos dois jogadores da partida em destaque?
+// A identidade ativa é um dos dois jogadores da partida em destaque?
 const souCompetidorEmDestaque = computed(() => {
   const d = partidaDestaque.value
-  if (!d || !perfil.value) return false
-  return d.jogador1_id === perfil.value.id || d.jogador2_id === perfil.value.id
+  if (!d || !euId.value) return false
+  return d.jogador1_id === euId.value || d.jogador2_id === euId.value
 })
 // Toda a gente que NÃO está a jogar a partida em palco pode apostar nela:
 // plateia, eliminados e quem espera a sua vez. Os dois em palco não.
+// O admin não aposta com a sua própria conta — mas PODE apostar a personificar
+// um bot (?como=botId), tal como já personifica para jogar.
 const podeApostar = computed(() =>
-  !isAdmin.value &&
-  !!minhaParticipacao.value &&
+  (personificando.value || !isAdmin.value) &&
+  !!euParticipacao.value &&
   !!partidaDestaque.value &&
   !souCompetidorEmDestaque.value
 )
@@ -262,16 +283,16 @@ const podeApostar = computed(() =>
 const minhaPartidaAtivaEstaRonda = computed(() =>
   minhaPartidaDestaRonda.value?.status === 'A_JOGAR'
 )
-// Resultado das MINHAS apostas no torneio (para mostrar no fim)
+// Resultado das apostas da identidade ativa no torneio (para mostrar no fim)
 const minhasApostas = computed(() =>
-  apostas.value.filter(a => a.apostador_id === perfil.value?.id)
+  apostas.value.filter(a => a.apostador_id === euId.value)
 )
 const meuResultadoApostas = computed(() => {
   if (!minhasApostas.value.length) return null
   const lucro = minhasApostas.value.reduce((s, a) => s + a.ganho, 0)
   return {
     lucro,
-    saldo: minhaParticipacao.value?.moedas ?? 0,
+    saldo: euParticipacao.value?.moedas ?? 0,
     n: minhasApostas.value.length,
   }
 })
@@ -301,6 +322,17 @@ const botsParaControlar = computed(() => {
     if (b2?.is_bot) out.push({ bot: b2, partidaId: p.id, adversario: b1?.name ?? '—' })
   }
   return out
+})
+
+// Bots que PODEM apostar na partida em palco (todos menos os dois em destaque) —
+// para o admin os personificar e apostar como se fossem players reais, mesmo
+// já eliminados. Abre cada um numa janela: /torneio/[id]?como=botId
+const botsParaApostar = computed(() => {
+  const d = partidaDestaque.value
+  if (!d) return []
+  return participantes.value
+    .filter(p => p.utilizador?.is_bot)
+    .filter(p => p.utilizador_id !== d.jogador1_id && p.utilizador_id !== d.jogador2_id)
 })
 
 // Avançar ronda (admin)
@@ -343,7 +375,7 @@ async function confirmarIniciar() {
   </div>
 
   <!-- ===== VISTA DE ESCOLHA (jogador inscrito OU bot personificado) ===== -->
-  <v-container v-else-if="torneio && participantePicker" max-width="520" class="py-10">
+  <v-container v-else-if="torneio && emLobby && participantePicker" max-width="520" class="py-10">
     <v-btn variant="text" size="small" prepend-icon="mdi-arrow-left" to="/" class="mb-4 text-medium-emphasis px-1">
       Voltar aos torneios
     </v-btn>
@@ -600,7 +632,7 @@ async function confirmarIniciar() {
         </template>
 
         <!-- ===== REVELAÇÃO DOS CONFRONTOS (ARVORE, admin) ===== -->
-        <div v-else-if="naArvore && isAdmin" class="d-flex flex-column flex-sm-row align-sm-center justify-space-between ga-3 mb-2">
+        <div v-else-if="naArvore && isAdmin && !personificando" class="d-flex flex-column flex-sm-row align-sm-center justify-space-between ga-3 mb-2">
           <v-alert type="info" variant="tonal" density="compact" icon="mdi-tournament" class="flex-grow-1" style="max-width:460px">
             Os confrontos estão revelados! Mostra-os no projetor e começa quando quiseres.
           </v-alert>
@@ -616,7 +648,7 @@ async function confirmarIniciar() {
         </div>
 
         <!-- ===== CONTROLOS (JOGO, admin) ===== -->
-        <div v-else-if="emJogo && isAdmin" class="d-flex flex-column flex-sm-row justify-sm-end ga-2 mb-2">
+        <div v-else-if="emJogo && isAdmin && !personificando" class="d-flex flex-column flex-sm-row justify-sm-end ga-2 mb-2">
           <v-btn
             v-if="apostasAbertas && partidaDestaque"
             color="accent" rounded="lg"
@@ -652,7 +684,7 @@ async function confirmarIniciar() {
 
       <!-- ===== PAINEL DE CONTROLO DO ANFITRIÃO (admin · a jogar / fim) ===== -->
       <PainelAnfitriao
-        v-if="isAdmin && (aJogar || terminado)"
+        v-if="isAdmin && (aJogar || terminado) && !personificando"
         :participantes="participantes"
         :apostas="apostas"
         :partida-destaque="partidaDestaque"
@@ -727,9 +759,9 @@ async function confirmarIniciar() {
         </div>
       </div>
 
-      <!-- ===== VISTA: BRACKET (admin, a jogar) ===== -->
+      <!-- ===== VISTA: BRACKET (admin, a jogar) — exceto se estiver a personificar um bot ===== -->
       <TorneioBracket
-        v-else-if="aJogar && isAdmin"
+        v-else-if="aJogar && isAdmin && !personificando"
         :torneio-id="torneioId"
         :partidas="partidasRonda"
         :fase-atual="faseAtual"
@@ -744,7 +776,7 @@ async function confirmarIniciar() {
       />
 
       <!-- ===== VISTA: FOCADA NO JOGADOR (não-admin, a jogar) ===== -->
-      <ClientOnly v-else-if="aJogar && !isAdmin && minhaParticipacao">
+      <ClientOnly v-else-if="aJogar && (personificando || !isAdmin) && euParticipacao">
       <div class="py-4">
 
         <!-- A) Há uma partida no palco e não sou eu a jogar → TODA a gente aposta -->
@@ -757,8 +789,8 @@ async function confirmarIniciar() {
             :jogador1="destJ1"
             :jogador2="destJ2"
             :apostas-abertas="apostasAbertas"
-            :minha-aposta="minhaAposta"
-            :saldo="minhaParticipacao?.moedas ?? 0"
+            :minha-aposta="euAposta"
+            :saldo="euParticipacao?.moedas ?? 0"
             :pote1="poteJog1"
             :pote2="poteJog2"
             :n1="nApostadores1"
@@ -774,7 +806,7 @@ async function confirmarIniciar() {
               :partidas="partidasRonda"
               :fase-atual="faseAtual"
               :jogo-atual="jogoAtual"
-              :perfil-id="perfil?.id"
+              :perfil-id="euId ?? undefined"
               :is-admin="false"
               :em-jogo="emJogo"
               :destaque-id="partidaDestaque?.id ?? null"
@@ -793,9 +825,9 @@ async function confirmarIniciar() {
               <div class="d-flex align-center justify-space-around">
                 <div class="text-center">
                   <v-avatar size="84" :class="sou1NaMinhaPartida ? 'ring-blue' : 'ring-red'">
-                    <v-img v-if="perfil?.avatar_url" :src="perfil.avatar_url" cover />
+                    <v-img v-if="euPerfil?.avatar_url" :src="euPerfil.avatar_url" cover />
                     <span v-else class="text-h5 font-weight-black" :class="sou1NaMinhaPartida ? 'text-blue' : 'text-red'">
-                      {{ perfil?.name?.charAt(0).toUpperCase() }}
+                      {{ euPerfil?.name?.charAt(0).toUpperCase() }}
                     </span>
                   </v-avatar>
                   <div class="text-body-1 font-weight-bold mt-2">Tu</div>
@@ -833,7 +865,7 @@ async function confirmarIniciar() {
 
           <!-- Carteira: saldo + últimas apostas, enquanto esperas -->
           <CarteiraApostas
-            :saldo="minhaParticipacao?.moedas ?? 0"
+            :saldo="euParticipacao?.moedas ?? 0"
             :apostas="minhasApostas"
             :perfil-de="perfilDe"
           />
@@ -846,7 +878,7 @@ async function confirmarIniciar() {
             {{ notaApostador.txt }}
           </v-alert>
           <CarteiraApostas
-            :saldo="minhaParticipacao?.moedas ?? 0"
+            :saldo="euParticipacao?.moedas ?? 0"
             :apostas="minhasApostas"
             :perfil-de="perfilDe"
           />
@@ -859,7 +891,7 @@ async function confirmarIniciar() {
               :partidas="partidasRonda"
               :fase-atual="faseAtual"
               :jogo-atual="jogoAtual"
-              :perfil-id="perfil?.id"
+              :perfil-id="euId ?? undefined"
               :is-admin="false"
               :em-jogo="emJogo"
               :destaque-id="partidaDestaque?.id ?? null"
@@ -1056,7 +1088,7 @@ async function confirmarIniciar() {
 
     <!-- ===== FAB: PAINEL DE CONTROLO DE BOTS (admin, a jogar) ===== -->
     <v-menu
-      v-if="isAdmin && emJogo && botsParaControlar.length"
+      v-if="isAdmin && emJogo && !personificando && (botsParaControlar.length || botsParaApostar.length)"
       location="top end"
       :close-on-content-click="false"
       offset="12"
@@ -1107,12 +1139,40 @@ async function confirmarIniciar() {
             </v-list-item-title>
           </v-list-item>
         </v-list>
+
+        <!-- Apostar como bot: personificar qualquer bot (mesmo eliminado) para apostar -->
+        <template v-if="botsParaApostar.length">
+          <v-divider />
+          <v-card-subtitle class="px-4 pt-3 pb-1 d-flex align-center ga-2" style="white-space:normal">
+            <v-icon size="18" color="accent">mdi-cash-multiple</v-icon>
+            Apostar como bot na partida em palco
+          </v-card-subtitle>
+          <v-list density="compact" nav>
+            <v-list-item
+              v-for="b in botsParaApostar"
+              :key="`aposta-${b.id}`"
+              :href="`/torneio/${torneioId}?como=${b.utilizador_id}`"
+              target="_blank"
+              rounded="lg"
+              append-icon="mdi-open-in-new"
+            >
+              <template #prepend>
+                <v-avatar size="32" color="surface-variant" class="mr-1">
+                  <v-img v-if="b.utilizador?.avatar_url" :src="b.utilizador.avatar_url" cover />
+                  <v-icon v-else size="18">mdi-robot</v-icon>
+                </v-avatar>
+              </template>
+              <v-list-item-title class="text-body-2 font-weight-medium">{{ b.utilizador?.name }}</v-list-item-title>
+              <v-list-item-subtitle class="text-caption">{{ b.moedas }} 🪙 disponíveis</v-list-item-subtitle>
+            </v-list-item>
+          </v-list>
+        </template>
       </v-card>
     </v-menu>
 
     <!-- ===== FAB: PERSONIFICAR BOTS NO LOBBY (admin) ===== -->
     <v-menu
-      v-if="isAdmin && emLobby && botsLobby.length"
+      v-if="isAdmin && emLobby && !personificando && botsLobby.length"
       location="top end"
       :close-on-content-click="false"
       offset="12"
