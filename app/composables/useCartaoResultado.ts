@@ -140,27 +140,35 @@ export async function gerarCartaoResultado(d: DadosCartao): Promise<Blob | null>
   }
 
   // ---- Campeão (herói) ----
+  // Avatar mais pequeno e posições adaptadas a haver (ou não) maior apostador,
+  // para sobrar espaço confortável ao cartão de baixo.
+  const avR = temApostador ? 124 : 145
+  const labelY = temApostador ? 368 : 400
+  const campCy = temApostador ? 530 : 600
+  const nomeY = campCy + avR + (temApostador ? 104 : 118)
+  const torneioY = nomeY + 56
+
   ctx.fillStyle = OURO
-  ctx.font = '800 36px Inter, system-ui, sans-serif'
-  textoCentrado(ctx, '🏆  CAMPEÃO', cx, 400, 10)
+  ctx.font = '800 34px Inter, system-ui, sans-serif'
+  textoCentrado(ctx, '🏆  CAMPEÃO', cx, labelY, 10)
 
-  desenharAvatar(ctx, imgCamp, cx, 600, 178, CIANO, 'rgba(0,229,255,0.6)', '#10243a', (d.campeaoNome || '?').charAt(0).toUpperCase())
+  desenharAvatar(ctx, imgCamp, cx, campCy, avR, CIANO, 'rgba(0,229,255,0.6)', '#10243a', (d.campeaoNome || '?').charAt(0).toUpperCase())
 
-  const tamNomeC = ajustarFonte(ctx, d.campeaoNome || '—', 900, 88, W - 140)
+  const tamNomeC = ajustarFonte(ctx, d.campeaoNome || '—', 900, 82, W - 140)
   ctx.fillStyle = '#FFFFFF'
   ctx.font = `900 ${tamNomeC}px Inter, system-ui, sans-serif`
-  textoCentrado(ctx, d.campeaoNome || '—', cx, 880)
+  textoCentrado(ctx, d.campeaoNome || '—', cx, nomeY)
 
   if (d.torneio) {
     ctx.fillStyle = 'rgba(255,255,255,0.68)'
-    const tamT = ajustarFonte(ctx, d.torneio, 600, 38, W - 160)
+    const tamT = ajustarFonte(ctx, d.torneio, 600, 36, W - 160)
     ctx.font = `600 ${tamT}px Inter, system-ui, sans-serif`
-    textoCentrado(ctx, d.torneio, cx, 948)
+    textoCentrado(ctx, d.torneio, cx, torneioY)
   }
 
   // ---- Maior apostador (cartão horizontal, em baixo) ----
   if (temApostador) {
-    const cardX = 110, cardY = 1075, cardW = W - 220, cardH = 200
+    const cardX = 110, cardY = 985, cardW = W - 220, cardH = 210
     ctx.save()
     ctx.beginPath()
     ;(ctx as any).roundRect(cardX, cardY, cardW, cardH, 28)
@@ -168,8 +176,8 @@ export async function gerarCartaoResultado(d: DadosCartao): Promise<Blob | null>
     ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(255,23,68,0.45)'; ctx.stroke()
     ctx.restore()
 
-    const avCy = cardY + cardH / 2 // 1175
-    const avCx = cardX + 110
+    const avCy = cardY + cardH / 2
+    const avCx = cardX + 115
     desenharAvatar(ctx, imgApost, avCx, avCy, 76, VERMELHO, 'rgba(255,23,68,0.55)', '#3a1018', (d.apostadorNome || '?').charAt(0).toUpperCase())
 
     const textoX = avCx + 130

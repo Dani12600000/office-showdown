@@ -165,7 +165,6 @@ const terminado = computed(() => torneio.value?.status === 'FINAL')
 const campeao = computed(() => perfilDe(torneio.value?.vencedor_id ?? null))
 
 // ---- Partilha do resultado (fim do torneio) ----
-const copiado = ref(false)
 const partilhaTexto = computed(() => {
   let t = `🏆 ${campeao.value?.name ?? '—'} venceu o torneio "${torneio.value?.nome ?? ''}" no Office Showdown!`
   if (melhorApostador.value) {
@@ -177,19 +176,24 @@ const partilhaTexto = computed(() => {
 const urlReq = useRequestURL()
 const urlPartilha = computed(() => `${urlReq.origin}/torneio/${torneioId}/resultado`)
 
-async function partilhar() {
-  const dados = { title: 'Office Showdown', text: partilhaTexto.value, url: urlPartilha.value }
-  if (import.meta.client && navigator.share) {
-    try { await navigator.share(dados) } catch { /* cancelado */ }
-    return
-  }
-  // Fallback: copiar para a área de transferência
-  try {
-    await navigator.clipboard.writeText(`${partilhaTexto.value} ${urlPartilha.value}`)
-    copiado.value = true
-    setTimeout(() => { copiado.value = false }, 2500)
-  } catch { /* sem permissão */ }
-}
+// Cartão de partilha (PNG com logo + campeão + maior apostador). Reutiliza o
+// LogoShowdown real (rasterizado) — ver o <div ref="logoCartaoRef"> no template.
+const logoCartaoRef = ref<HTMLElement | null>(null)
+const { aGerar, aDescarregar, copiado, partilhar, descarregarImagem } = usePartilhaCartao({
+  logoEl: logoCartaoRef,
+  texto: () => partilhaTexto.value,
+  url: () => urlPartilha.value,
+  dados: () => (terminado.value && campeao.value)
+    ? {
+        torneio: torneio.value?.nome ?? '',
+        campeaoNome: campeao.value.name,
+        campeaoAvatar: campeao.value.avatar_url,
+        apostadorNome: melhorApostador.value?.utilizador?.name ?? null,
+        apostadorAvatar: melhorApostador.value?.utilizador?.avatar_url ?? null,
+        apostadorGanho: melhorApostador.value?.ganho ?? null,
+      }
+    : null,
+})
 
 // ---- Vista focada do jogador (não-admin) durante ARVORE/JOGO ----
 // O bracket completo só interessa ao admin. O jogador real vê só
@@ -827,8 +831,11 @@ watch(() => minhaParticipacao.value, (agora, antes) => {
         <div class="mt-8">
           <p class="text-body-2 text-medium-emphasis mb-3">Partilha o resultado</p>
           <div class="d-flex flex-wrap justify-center ga-2">
-            <v-btn color="primary" variant="flat" rounded="pill" prepend-icon="mdi-share-variant" @click="partilhar">
+            <v-btn color="primary" variant="flat" rounded="pill" prepend-icon="mdi-share-variant" :loading="aGerar" @click="partilhar">
               Partilhar
+            </v-btn>
+            <v-btn color="primary" variant="tonal" rounded="pill" prepend-icon="mdi-image-outline" :loading="aDescarregar" @click="descarregarImagem">
+              Descarregar imagem
             </v-btn>
           </div>
           <v-fade-transition>
@@ -836,6 +843,11 @@ watch(() => minhaParticipacao.value, (agora, antes) => {
               <v-icon size="14">mdi-check</v-icon> Resultado copiado para a área de transferência
             </p>
           </v-fade-transition>
+
+          <!-- Logo real (oculto) só para rasterizar no cartão de partilha -->
+          <div ref="logoCartaoRef" class="logo-cartao-oculto" aria-hidden="true">
+            <LogoShowdown />
+          </div>
         </div>
       </div>
 
@@ -1379,6 +1391,16 @@ watch(() => minhaParticipacao.value, (agora, antes) => {
   bottom: 24px;
   right: 24px;
   z-index: 1000;
+}
+
+/* Logo só para rasterizar (html-to-image) — renderizado mas fora do ecrã.
+   Não usar display:none senão não tem dimensões para capturar. */
+.logo-cartao-oculto {
+  position: fixed;
+  left: -9999px;
+  top: 0;
+  width: max-content;
+  pointer-events: none;
 }
 
 .escolha-lobby {

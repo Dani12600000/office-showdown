@@ -63,7 +63,6 @@ defineOgImageComponent('Campeao', {
 
 // ---- Botões de partilha ----
 const urlAtual = computed(() => `${url.origin}/torneio/${torneioId}/resultado`)
-const copiado = ref(false)
 
 const textoPartilha = computed(() => {
   let t = terminado.value && campeao.value
@@ -73,88 +72,23 @@ const textoPartilha = computed(() => {
   return t
 })
 
-// Rasteriza o componente LogoShowdown (DOM real) para PNG, para o desenharmos no
-// canvas — reutiliza o logo existente em vez de o redesenhar à mão.
+// Logo real (LogoShowdown) a rasterizar para o cartão de partilha.
 const logoRef = ref<HTMLElement | null>(null)
-async function rasterizarLogo(): Promise<string | null> {
-  if (!import.meta.client || !logoRef.value) return null
-  try {
-    const { toPng } = await import('html-to-image')
-    return await toPng(logoRef.value, { pixelRatio: 4, cacheBust: true })
-  } catch (e) {
-    console.warn('[resultado] falha a rasterizar o logo:', e)
-    return null
-  }
-}
-
-// Gera o cartão PNG (campeão + maior apostador + logo) para partilhar/descarregar.
-// Só faz sentido quando o torneio terminou e há campeão.
-async function gerarImagem(): Promise<Blob | null> {
-  if (!terminado.value || !campeao.value) return null
-  const logoDataUrl = await rasterizarLogo()
-  return gerarCartaoResultado({
-    torneio: nome.value,
-    campeaoNome: campeao.value.name,
-    campeaoAvatar: campeao.value.avatar_url,
-    apostadorNome: melhor.value?.name ?? null,
-    apostadorAvatar: melhor.value?.avatar_url ?? null,
-    apostadorGanho: melhor.value?.ganho ?? null,
-    logoDataUrl,
-  })
-}
-
-const aGerar = ref(false)
-
-async function partilhar() {
-  if (!import.meta.client) return
-  aGerar.value = true
-  let blob: Blob | null = null
-  try { blob = await gerarImagem() } catch { blob = null }
-  aGerar.value = false
-
-  const ficheiro = blob ? new File([blob], 'office-showdown.png', { type: 'image/png' }) : null
-  // Ao partilhar ficheiro, alguns apps ignoram o campo `url` — por isso meto o link no texto.
-  const textoComLink = `${textoPartilha.value} ${urlAtual.value}`
-
-  // 1) Partilha nativa COM imagem (Web Share API nível 2)
-  if (ficheiro && navigator.canShare?.({ files: [ficheiro] })) {
-    try {
-      await navigator.share({ title: 'Office Showdown', text: textoComLink, files: [ficheiro] })
-      return
-    } catch { return /* cancelado pelo utilizador */ }
-  }
-
-  // 2) Partilha nativa só com texto/link (sem suporte a ficheiros)
-  if (navigator.share) {
-    try { await navigator.share({ title: 'Office Showdown', text: textoPartilha.value, url: urlAtual.value }); return }
-    catch { /* cancelado */ }
-  }
-
-  // 3) Fallback desktop: descarrega a imagem (se houver) e copia o texto+link
-  if (blob) descarregarBlob(blob, 'office-showdown.png')
-  try {
-    await navigator.clipboard.writeText(textoComLink)
-    copiado.value = true
-    setTimeout(() => { copiado.value = false }, 2500)
-  } catch { /* sem permissão */ }
-}
-
-function descarregarBlob(blob: Blob, nomeFicheiro: string) {
-  const href = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = href; a.download = nomeFicheiro
-  document.body.appendChild(a); a.click(); a.remove()
-  setTimeout(() => URL.revokeObjectURL(href), 1000)
-}
-
-const aDescarregar = ref(false)
-async function descarregarImagem() {
-  aDescarregar.value = true
-  try {
-    const blob = await gerarImagem()
-    if (blob) descarregarBlob(blob, 'office-showdown.png')
-  } finally { aDescarregar.value = false }
-}
+const { aGerar, aDescarregar, copiado, partilhar, descarregarImagem } = usePartilhaCartao({
+  logoEl: logoRef,
+  texto: () => textoPartilha.value,
+  url: () => urlAtual.value,
+  dados: () => (terminado.value && campeao.value)
+    ? {
+        torneio: nome.value,
+        campeaoNome: campeao.value.name,
+        campeaoAvatar: campeao.value.avatar_url,
+        apostadorNome: melhor.value?.name ?? null,
+        apostadorAvatar: melhor.value?.avatar_url ?? null,
+        apostadorGanho: melhor.value?.ganho ?? null,
+      }
+    : null,
+})
 </script>
 
 <template>
