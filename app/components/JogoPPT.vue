@@ -62,7 +62,9 @@ const suspense = ref(false)
 let suspTimer: ReturnType<typeof setTimeout> | null = null
 watch(revelando, (r) => {
   if (suspTimer) { clearTimeout(suspTimer); suspTimer = null }
-  if (r) {
+  // Suspense só em rondas intermédias. Na jogada decisiva (terminada) não há
+  // suspense — vai direto ao resultado / ecrã de vitória.
+  if (r && !terminada.value) {
     suspense.value = true
     suspTimer = setTimeout(() => { suspense.value = false }, SUSPENSE_MS)
   } else {
