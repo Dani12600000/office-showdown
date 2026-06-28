@@ -319,28 +319,29 @@ const botsLobby = computed(() =>
   participantes.value.filter(p => p.utilizador?.is_bot)
 )
 
-// Cada bot em partida ativa (para controlar individualmente, um por janela)
-const botsParaControlar = computed(() => {
-  const out: { bot: NonNullable<ReturnType<typeof perfilDe>>; partidaId: string; adversario: string }[] = []
-  for (const p of partidasRonda.value) {
-    if (p.status !== 'A_JOGAR') continue
-    const b1 = perfilDe(p.jogador1_id)
-    const b2 = perfilDe(p.jogador2_id)
-    if (b1?.is_bot) out.push({ bot: b1, partidaId: p.id, adversario: b2?.name ?? '—' })
-    if (b2?.is_bot) out.push({ bot: b2, partidaId: p.id, adversario: b1?.name ?? '—' })
-  }
-  return out
-})
-
-// Bots que PODEM apostar na partida em palco (todos menos os dois em destaque) —
-// para o admin os personificar e apostar como se fossem players reais, mesmo
-// já eliminados. Abre cada um numa janela: /torneio/[id]?como=botId
-const botsParaApostar = computed(() => {
+// Menu unificado de bots (uma linha por bot, com as ações disponíveis):
+//  • Jogar    — se o bot tem uma partida ativa nesta ronda (abre a página da partida)
+//  • Apostar  — se há partida em palco e o bot não é um dos dois em destaque
+// Tudo na mesma lista, sem secções separadas.
+const botsMenu = computed(() => {
   const d = partidaDestaque.value
-  if (!d) return []
-  return participantes.value
-    .filter(p => p.utilizador?.is_bot)
-    .filter(p => p.utilizador_id !== d.jogador1_id && p.utilizador_id !== d.jogador2_id)
+  return botsLobby.value.map((p) => {
+    const partida = partidasRonda.value.find(m =>
+      m.status === 'A_JOGAR' &&
+      (m.jogador1_id === p.utilizador_id || m.jogador2_id === p.utilizador_id)
+    ) ?? null
+    const advId = partida
+      ? (partida.jogador1_id === p.utilizador_id ? partida.jogador2_id : partida.jogador1_id)
+      : null
+    return {
+      id: p.utilizador_id,
+      bot: p.utilizador!,
+      moedas: p.moedas,
+      partidaId: partida?.id ?? null,
+      adversario: advId ? (perfilDe(advId)?.name ?? '—') : null,
+      podeApostar: !!d && p.utilizador_id !== d.jogador1_id && p.utilizador_id !== d.jogador2_id,
+    }
+  })
 })
 
 // Avançar ronda (admin)
@@ -1133,7 +1134,7 @@ async function confirmarIniciar() {
 
     <!-- ===== FAB: PAINEL DE CONTROLO DE BOTS (admin, a jogar) ===== -->
     <v-menu
-      v-if="isAdmin && emJogo && !personificando && (botsParaControlar.length || botsParaApostar.length)"
+      v-if="isAdmin && emJogo && !personificando && botsMenu.length"
       location="top end"
       :close-on-content-click="false"
       offset="12"
@@ -1149,69 +1150,52 @@ async function confirmarIniciar() {
         />
       </template>
 
-      <v-card rounded="xl" min-width="300" max-width="360" elevation="12">
+      <v-card rounded="xl" min-width="320" max-width="380" elevation="12">
         <v-card-title class="text-subtitle-1 font-weight-bold d-flex align-center ga-2 pa-4 pb-2">
           <v-icon size="20" color="secondary">mdi-robot</v-icon>
-          Controlar bots
+          Bots
         </v-card-title>
         <v-card-subtitle class="px-4 pb-2" style="white-space:normal">
-          Cada bot abre numa janela nova, como se fosses esse jogador.
+          Cada ação abre numa janela nova, como se fosses esse bot.
         </v-card-subtitle>
         <v-divider />
 
-        <v-list density="compact" nav>
-          <v-list-item
-            v-for="b in botsParaControlar"
-            :key="b.bot.id"
-            :href="`/torneio/${torneioId}/partida/${b.partidaId}?como=${b.bot.id}`"
-            target="_blank"
-            rounded="lg"
-            append-icon="mdi-open-in-new"
-          >
+        <v-list density="compact" lines="two">
+          <v-list-item v-for="b in botsMenu" :key="b.id" rounded="lg">
             <template #prepend>
-              <v-avatar size="32" color="surface-variant" class="mr-1">
+              <v-avatar size="36" color="surface-variant" class="mr-1">
                 <v-img v-if="b.bot.avatar_url" :src="b.bot.avatar_url" cover />
                 <v-icon v-else size="18">mdi-robot</v-icon>
               </v-avatar>
             </template>
             <v-list-item-title class="text-body-2 font-weight-medium">{{ b.bot.name }}</v-list-item-title>
-            <v-list-item-subtitle class="text-caption">vs {{ b.adversario }}</v-list-item-subtitle>
-          </v-list-item>
+            <v-list-item-subtitle class="text-caption">
+              <span v-if="b.partidaId">a jogar · vs {{ b.adversario }}</span>
+              <span v-else>{{ b.moedas }} 🪙 · na bancada</span>
+            </v-list-item-subtitle>
 
-          <v-list-item v-if="!botsParaControlar.length">
-            <v-list-item-title class="text-caption text-medium-emphasis">
-              Nenhum bot em partida nesta ronda.
-            </v-list-item-title>
+            <template #append>
+              <div class="d-flex ga-1">
+                <v-btn
+                  v-if="b.partidaId"
+                  size="small" variant="tonal" color="secondary"
+                  icon="mdi-gamepad-variant"
+                  :href="`/torneio/${torneioId}/partida/${b.partidaId}?como=${b.id}`"
+                  target="_blank"
+                  title="Jogar como este bot"
+                />
+                <v-btn
+                  v-if="b.podeApostar"
+                  size="small" variant="tonal" color="accent"
+                  icon="mdi-cash-multiple"
+                  :href="`/torneio/${torneioId}?como=${b.id}`"
+                  target="_blank"
+                  title="Apostar como este bot"
+                />
+              </div>
+            </template>
           </v-list-item>
         </v-list>
-
-        <!-- Apostar como bot: personificar qualquer bot (mesmo eliminado) para apostar -->
-        <template v-if="botsParaApostar.length">
-          <v-divider />
-          <v-card-subtitle class="px-4 pt-3 pb-1 d-flex align-center ga-2" style="white-space:normal">
-            <v-icon size="18" color="accent">mdi-cash-multiple</v-icon>
-            Apostar como bot na partida em palco
-          </v-card-subtitle>
-          <v-list density="compact" nav>
-            <v-list-item
-              v-for="b in botsParaApostar"
-              :key="`aposta-${b.id}`"
-              :href="`/torneio/${torneioId}?como=${b.utilizador_id}`"
-              target="_blank"
-              rounded="lg"
-              append-icon="mdi-open-in-new"
-            >
-              <template #prepend>
-                <v-avatar size="32" color="surface-variant" class="mr-1">
-                  <v-img v-if="b.utilizador?.avatar_url" :src="b.utilizador.avatar_url" cover />
-                  <v-icon v-else size="18">mdi-robot</v-icon>
-                </v-avatar>
-              </template>
-              <v-list-item-title class="text-body-2 font-weight-medium">{{ b.utilizador?.name }}</v-list-item-title>
-              <v-list-item-subtitle class="text-caption">{{ b.moedas }} 🪙 disponíveis</v-list-item-subtitle>
-            </v-list-item>
-          </v-list>
-        </template>
       </v-card>
     </v-menu>
 
