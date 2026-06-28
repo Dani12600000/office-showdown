@@ -215,19 +215,29 @@ export const useLobby = (torneioId: string) => {
   // Melhor apostador do torneio: maior lucro líquido (soma dos ganhos de todas
   // as apostas liquidadas). Devolve null se ninguém teve lucro positivo.
   const melhorApostador = computed(() => {
-    const agg = new Map<string, { ganho: number; apostado: number; nApostas: number }>()
+    type Agg = { ganho: number; apostado: number; nApostas: number; desde: string }
+    const agg = new Map<string, Agg>()
     for (const a of apostas.value) {
-      const e = agg.get(a.apostador_id) ?? { ganho: 0, apostado: 0, nApostas: 0 }
+      const e = agg.get(a.apostador_id) ?? { ganho: 0, apostado: 0, nApostas: 0, desde: '' }
       e.ganho += a.ganho
       e.apostado += a.montante
       e.nApostas += 1
+      const c = a.created_at ?? ''
+      if (c && (!e.desde || c < e.desde)) e.desde = c   // aposta mais antiga deste apostador
       agg.set(a.apostador_id, e)
     }
-    let topo: { id: string; ganho: number; apostado: number; nApostas: number } | null = null
+    // Maior lucro; em caso de empate, ganha quem "chegou lá primeiro"
+    // (aposta mais antiga). Desempate final pelo id, para ser determinístico.
+    let topo: { id: string } & Agg | null = null
     for (const [id, e] of agg) {
-      if (!topo || e.ganho > topo.ganho) topo = { id, ...e }
+      if (e.ganho <= 0) continue
+      const melhor = !topo
+        || e.ganho > topo.ganho
+        || (e.ganho === topo.ganho && e.desde < topo.desde)
+        || (e.ganho === topo.ganho && e.desde === topo.desde && id < topo.id)
+      if (melhor) topo = { id, ...e }
     }
-    if (!topo || topo.ganho <= 0) return null
+    if (!topo) return null
     const part = participantes.value.find(p => p.utilizador_id === topo!.id)
     return {
       utilizador: part?.utilizador ?? perfilDe(topo.id),
