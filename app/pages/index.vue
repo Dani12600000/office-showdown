@@ -70,6 +70,14 @@ const statusConfig: Record<StatusTorneio, { label: string; color: string; icon: 
   FINAL:  { label: 'Grande Final!',        color: 'accent',    icon: 'mdi-trophy' },
 }
 
+// Estado a mostrar no cartão — em LOBBY distingue inscrições abertas/fechadas
+function estadoTorneio(t: TorneioCard) {
+  if (t.status === 'LOBBY' && !((t as any).inscricoes_abertas ?? true)) {
+    return { label: 'Inscrições fechadas', color: 'surface-variant', icon: 'mdi-door-closed-lock' }
+  }
+  return statusConfig[t.status]
+}
+
 const jogoIcon: Record<NumeroRonda, string> = {
   1: 'mdi-hand-wave',
   2: 'mdi-grid',
@@ -188,7 +196,7 @@ const participacaoConfig = {
       >
         <v-card
           v-motion-slide-visible-bottom
-          :border="`${statusConfig[torneio.status].color} thin`"
+          :border="`${estadoTorneio(torneio).color} thin`"
           rounded="xl"
           class="h-100"
         >
@@ -196,24 +204,25 @@ const participacaoConfig = {
           <v-card-item>
             <template #prepend>
               <v-avatar
-                :color="statusConfig[torneio.status].color"
+                :color="estadoTorneio(torneio).color"
                 variant="tonal"
                 size="48"
                 rounded="lg"
               >
-                <v-icon>{{ statusConfig[torneio.status].icon }}</v-icon>
+                <v-icon>{{ estadoTorneio(torneio).icon }}</v-icon>
               </v-avatar>
             </template>
 
             <v-card-title class="font-weight-bold">{{ torneio.nome }}</v-card-title>
             <v-card-subtitle>
               <v-chip
-                :color="statusConfig[torneio.status].color"
+                :color="estadoTorneio(torneio).color"
                 size="x-small"
                 label
                 class="mt-1"
               >
-                {{ statusConfig[torneio.status].label }}
+                <v-icon start size="13">{{ estadoTorneio(torneio).icon }}</v-icon>
+                {{ estadoTorneio(torneio).label }}
               </v-chip>
             </v-card-subtitle>
 
