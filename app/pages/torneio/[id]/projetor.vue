@@ -46,12 +46,12 @@ const lobbyEscala = computed(() => {
   const n = participantes.value.length
   // [limite, avatar, item, gap, fonte(rem)]
   const tiers: [number, number, number, number, number][] = [
-    [8,  130, 168, 40, 1.15],
-    [16, 116, 150, 34, 1.05],
-    [24, 100, 132, 28, 0.95],
-    [32,  84, 112, 24, 0.85],
-    [48,  68,  92, 18, 0.74],
-    [Infinity, 54, 74, 14, 0.64],
+    [8,  108, 140, 32, 1.0],
+    [16,  92, 120, 26, 0.92],
+    [24,  78, 104, 22, 0.84],
+    [32,  68,  90, 18, 0.76],
+    [48,  56,  76, 15, 0.68],
+    [Infinity, 46, 62, 12, 0.6],
   ]
   const [, av, item, gap, fonte] = tiers.find(t => n <= t[0])!
   return {
