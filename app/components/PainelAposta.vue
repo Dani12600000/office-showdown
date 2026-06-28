@@ -13,8 +13,14 @@ const props = defineProps<{
   pote2: number
   n1: number
   n2: number
+  euPronto: boolean
+  prontos: number
+  total: number
 }>()
-const emit = defineEmits<{ apostar: [alvoId: string, montante: number] }>()
+const emit = defineEmits<{
+  apostar: [alvoId: string, montante: number]
+  pronto: [valor: boolean]
+}>()
 
 const terminada = computed(() => props.partida?.status === 'TERMINADO')
 const poteTotal = computed(() => props.pote1 + props.pote2)
@@ -184,6 +190,21 @@ const resultado = computed(() => {
             </v-btn>
           </div>
           <p v-else class="text-center text-body-2 text-medium-emphasis py-2">Ficaste sem moedas. 😬</p>
+
+          <!-- "Já apostei tudo o que queria" — avisa o anfitrião que pode fechar -->
+          <v-divider class="my-4" />
+          <v-btn
+            :color="euPronto ? 'success' : 'surface-variant'"
+            :variant="euPronto ? 'flat' : 'tonal'"
+            rounded="lg" block
+            :prepend-icon="euPronto ? 'mdi-check-circle' : 'mdi-hand-back-right'"
+            @click="emit('pronto', !euPronto)"
+          >
+            {{ euPronto ? 'Estás pronto — toca para voltar atrás' : 'Já apostei tudo o que queria' }}
+          </v-btn>
+          <p class="text-center text-caption text-medium-emphasis mt-2">
+            {{ prontos }} de {{ total }} a aguardar o apresentador
+          </p>
         </template>
       </template>
 

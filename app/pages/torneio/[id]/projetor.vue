@@ -151,9 +151,10 @@ watch(navalUltimoSig, (sig, antes) => {
   tocarStinger(resultado === 'agua' ? 'agua' : 'explosao', 1)
 })
 
-// Revelação (drumroll) — nova janela de revelação enquanto a partida ainda decorre
+// Revelação (drumroll) — só no PPT. Nos jogos de tabuleiro o `revelar_ate` também
+// é usado nos empates (recomeço do tabuleiro) e aí NÃO deve tocar nada.
 watch(() => dest.value?.revelar_ate, (r, o) => {
-  if (r && r !== o && dest.value?.status === 'A_JOGAR') tocarStinger('revelacao')
+  if (r && r !== o && dest.value?.status === 'A_JOGAR' && jogoDestTipo.value === 'PPT') tocarStinger('revelacao')
 })
 </script>
 

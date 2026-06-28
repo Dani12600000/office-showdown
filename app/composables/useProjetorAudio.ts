@@ -14,7 +14,7 @@ export type StingerNome = 'comecar' | 'intro-vs' | 'vitoria' | 'revelacao' | 'ag
 // Volume de cada loop (fundo discreto — não abafar a sala/apresentador)
 const VOL_LOOP: Record<LoopNome, number> = {
   lobby:         0.35,
-  confrontos:    0.45,
+  confrontos:    0.18,
   apostas:       0.40,
   jogo:          0.30,
   standby:       0.28,

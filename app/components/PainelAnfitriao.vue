@@ -11,7 +11,11 @@ const props = withDefaults(defineProps<{
   perfilDe: (id: string | null) => Utilizador | null
   // Total de prémios de partida (pote ganho por venceres sem ninguém apostar em ti)
   premioDe?: (utilizadorId: string) => number
-}>(), { premioDe: () => 0 })
+  // Apostadores que já se marcaram "prontos" (Presence) — só relevante com apostas abertas
+  prontos?: number
+  totalProntos?: number
+  apostasAbertas?: boolean
+}>(), { premioDe: () => 0, prontos: 0, totalProntos: 0, apostasAbertas: false })
 
 const aberto = ref(true)
 
@@ -81,6 +85,13 @@ const nomeAlvo = (id: string | null) => props.perfilDe(id)?.name ?? '—'
         </v-chip>
         <v-chip v-if="partidaDestaque" size="small" variant="tonal" color="secondary">
           Pote: {{ poteDestaque }} 🪙 · {{ nApostasDestaque }} apostas
+        </v-chip>
+        <v-chip
+          v-if="apostasAbertas && totalProntos > 0"
+          size="small" variant="flat"
+          :color="prontos >= totalProntos ? 'success' : 'warning'"
+        >
+          <v-icon start size="14">mdi-hand-back-right</v-icon>{{ prontos }}/{{ totalProntos }} prontos
         </v-chip>
         <v-icon>{{ aberto ? 'mdi-chevron-up' : 'mdi-chevron-down' }}</v-icon>
       </div>

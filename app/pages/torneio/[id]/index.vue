@@ -286,6 +286,19 @@ const podeApostar = computed(() =>
 const minhaPartidaAtivaEstaRonda = computed(() =>
   minhaPartidaDestaRonda.value?.status === 'A_JOGAR'
 )
+
+// "Já apostei tudo o que queria" (Presence — sem BD). Os apostadores marcam-se
+// prontos; o anfitrião vê "X de Y prontos" para decidir quando fechar as apostas.
+// Conta todos (incl. bots personificados); o admin que só observa não participa.
+const {
+  euPronto, prontos: prontosApostas, total: totalApostas, todosProntos,
+  marcar: marcarPronto,
+} = useApostasProntos({
+  torneioId,
+  euId,
+  partidaId: computed(() => partidaDestaque.value?.id ?? null),
+  participar: podeApostar,
+})
 // Resultado das apostas da identidade ativa no torneio (para mostrar no fim)
 const minhasApostas = computed(() =>
   apostas.value.filter(a => a.apostador_id === euId.value)
@@ -715,11 +728,15 @@ watch(() => minhaParticipacao.value, (agora, antes) => {
             v-if="apostasAbertas && partidaDestaque"
             color="accent" rounded="lg"
             class="flex-grow-1 flex-sm-grow-0"
+            :class="{ 'pulsar-pronto': todosProntos }"
             prepend-icon="mdi-cash-lock"
             :loading="aFechar"
             @click="fazerFecharApostas"
           >
             Fechar apostas e começar
+            <v-chip v-if="totalApostas > 0" class="ml-2" size="x-small" :color="todosProntos ? 'success' : 'surface'" label>
+              {{ prontosApostas }}/{{ totalApostas }} prontos
+            </v-chip>
           </v-btn>
           <v-btn
             variant="tonal" color="primary" rounded="lg"
@@ -752,6 +769,9 @@ watch(() => minhaParticipacao.value, (agora, antes) => {
         :partida-destaque="partidaDestaque"
         :perfil-de="perfilDe"
         :premio-de="premioTotalDe"
+        :prontos="prontosApostas"
+        :total-prontos="totalApostas"
+        :apostas-abertas="apostasAbertas"
       />
 
       <!-- ===== VISTA: CAMPEÃO ===== -->
@@ -855,7 +875,11 @@ watch(() => minhaParticipacao.value, (agora, antes) => {
             :pote2="poteJog2"
             :n1="nApostadores1"
             :n2="nApostadores2"
+            :eu-pronto="euPronto"
+            :prontos="prontosApostas"
+            :total="totalApostas"
             @apostar="fazerAposta"
+            @pronto="marcarPronto"
           />
           <div class="mt-6">
             <p class="text-overline text-medium-emphasis mb-3">
@@ -1341,6 +1365,13 @@ watch(() => minhaParticipacao.value, (agora, antes) => {
   box-shadow: 0 0 40px rgba(255, 214, 0, 0.6);
   outline: 3px solid rgb(var(--v-theme-accent));
   outline-offset: 3px;
+}
+
+/* Todos os apostadores prontos → chama a atenção do anfitrião para fechar */
+.pulsar-pronto { animation: pulsar-pronto 1.1s ease-in-out infinite; }
+@keyframes pulsar-pronto {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(0, 230, 118, 0.5); }
+  50%      { box-shadow: 0 0 0 8px rgba(0, 230, 118, 0); }
 }
 
 .fab-bots {
