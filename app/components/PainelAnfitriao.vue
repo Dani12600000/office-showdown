@@ -72,7 +72,7 @@ const nomeAlvo = (id: string | null) => props.perfilDe(id)?.name ?? '—'
         <v-chip size="x-small" variant="tonal" color="primary" class="ml-1">{{ participantes.length }}</v-chip>
       </div>
 
-      <div class="d-flex align-center ga-2">
+      <div class="d-flex align-center ga-2 flex-wrap justify-end painel-chips">
         <v-chip size="small" color="accent" variant="flat" class="font-weight-bold">
           {{ ouroTotal }} 🪙 em jogo
         </v-chip>
@@ -123,6 +123,7 @@ const nomeAlvo = (id: string | null) => props.perfilDe(id)?.name ?? '—'
 
             <!-- Aposta na partida em destaque -->
             <div class="col-aposta">
+              <span class="m-label">Aposta:</span>
               <v-chip v-if="l.aposta" size="small" variant="tonal" color="secondary" label>
                 <v-icon start size="13">mdi-cash</v-icon>
                 {{ l.aposta.montante }} 🪙 → {{ nomeAlvo(l.aposta.alvo_id) }}
@@ -132,6 +133,7 @@ const nomeAlvo = (id: string | null) => props.perfilDe(id)?.name ?? '—'
 
             <!-- Lucro acumulado -->
             <div class="col-lucro text-right">
+              <span class="m-label">Lucro:</span>
               <span
                 v-if="l.lucro !== 0"
                 class="text-body-2 font-weight-bold"
@@ -174,8 +176,42 @@ const nomeAlvo = (id: string | null) => props.perfilDe(id)?.name ?? '—'
 .corpo::-webkit-scrollbar { width: 8px; }
 .corpo::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.15); border-radius: 4px; }
 
+/* Etiquetas só visíveis no layout empilhado do mobile */
+.m-label {
+  display: none;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: rgba(255, 255, 255, 0.5);
+  flex-shrink: 0;
+}
+
 @media (max-width: 640px) {
-  .linha { grid-template-columns: minmax(0, 1.6fr) 0.8fr; }
-  .col-aposta, .col-lucro { display: none; }
+  /* O cabeçalho deixa de partir o título — chips passam para baixo se faltar espaço */
+  .painel-head { flex-wrap: wrap; }
+  .painel-head .text-subtitle-1 { white-space: nowrap; }
+  .painel-chips { width: 100%; }
+
+  /* Cada participante fica num "cartão" empilhado, com TUDO visível:
+     linha 1 → nome + ouro · linha 2 → aposta · linha 3 → lucro. */
+  .linha {
+    grid-template-columns: 1fr auto;
+    column-gap: 12px;
+    row-gap: 6px;
+    padding: 12px 16px;
+  }
+  .linha.cabecalho { display: none; }     /* os rótulos passam para dentro de cada linha */
+  .col-jog    { grid-column: 1; grid-row: 1; }
+  .col-ouro   { grid-column: 2; grid-row: 1; align-self: center; }
+  .col-aposta {
+    grid-column: 1 / -1; grid-row: 2;
+    display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  }
+  .col-lucro {
+    grid-column: 1 / -1; grid-row: 3;
+    text-align: left !important;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .m-label { display: inline; }
 }
 </style>
