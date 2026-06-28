@@ -40,8 +40,6 @@ onMounted(async () => {
     radial-gradient(900px 500px at 80% 110%, rgba(255, 23, 68, 0.12), transparent 60%),
     #0D0D1A;
   transition: opacity 0.5s ease, transform 0.5s ease;
-  /* dvh = altura real no telemóvel (conta com a barra do browser) */
-  min-height: 100dvh;
 }
 .splash--out {
   opacity: 0;
