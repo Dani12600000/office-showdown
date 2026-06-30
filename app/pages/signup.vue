@@ -70,7 +70,7 @@ const formValido = computed(() =>
   emailValido.value &&
   email.value.trim() &&
   password.value.length >= 6 &&
-  passwordsIguais.value
+  password.value === passwordConfirm.value   // não basta passwordsIguais: ela é true c/ confirm vazio
 )
 
 async function submeter() {
