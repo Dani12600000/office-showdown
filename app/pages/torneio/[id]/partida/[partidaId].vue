@@ -11,28 +11,66 @@ const partidaId = route.params.partidaId as string
 // Modo personificação: ?como=<botId>
 const comoId = computed(() => (route.query.como as string) || null)
 
+const { perfil, isAdmin } = useAuth()
+
 // Determina o tipo de jogo desta partida com 2 queries leves
 // (cada componente de jogo faz a sua própria subscrição realtime).
 const supabase = useSupabaseClient<Database>()
 const jogoTipo = ref<JogoTipo>('PPT')
 const carregado = ref(false)
 
+// Estado mínimo para decidir se o jogador real pode ver o botão "Voltar".
+const partidaStatus = ref<string | null>(null)
+const j1 = ref<string | null>(null)
+const j2 = ref<string | null>(null)
+const destaqueId = ref<string | null>(null)
+
 const { data: p } = await supabase
   .from('partidas')
-  .select('torneio_id, ronda')
+  .select('torneio_id, ronda, status, jogador1_id, jogador2_id')
   .eq('id', partidaId)
   .single()
 
 if (p) {
+  partidaStatus.value = (p as any).status
+  j1.value = (p as any).jogador1_id
+  j2.value = (p as any).jogador2_id
   const { data: t } = await supabase
     .from('torneios')
-    .select('jogos_ronda')
+    .select('jogos_ronda, partida_destaque_id')
     .eq('id', (p as any).torneio_id)
     .single()
   const config = ((t as any)?.jogos_ronda ?? JOGOS_RONDA_DEFAULT) as Record<string, JogoTipo>
   jogoTipo.value = config[String((p as any).ronda)] ?? 'PPT'
+  destaqueId.value = (t as any)?.partida_destaque_id ?? null
 }
 carregado.value = true
+
+// Mantém o estado fresco (o botão reaparece quando o jogo termina ou sai de destaque).
+if (import.meta.client) {
+  const canal = supabase
+    .channel(`partida-nav-${partidaId}`)
+    .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'partidas', filter: `id=eq.${partidaId}` }, (payload) => {
+      partidaStatus.value = (payload.new as any).status
+    })
+    .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'torneios', filter: `id=eq.${torneioId}` }, (payload) => {
+      destaqueId.value = (payload.new as any).partida_destaque_id ?? null
+    })
+    .subscribe()
+  onUnmounted(() => { supabase.removeChannel(canal) })
+}
+
+// O jogador real está "preso de propósito": é um dos jogadores, não é admin,
+// a partida está a decorrer E em destaque. Nesse caso escondemos o botão de
+// sair para não fugir do palco por engano (o sistema já o traz de volta, mas
+// o flicker confunde). No fim do jogo o retorno é automático (useCorePartida).
+const souJogadorEmPalco = computed(() =>
+  !isAdmin.value &&
+  !comoId.value &&
+  (perfil.value?.id === j1.value || perfil.value?.id === j2.value) &&
+  partidaStatus.value === 'A_JOGAR' &&
+  destaqueId.value === partidaId
+)
 
 const jogoNome = computed(() => JOGOS_CATALOGO[jogoTipo.value].nome)
 const jogoDisponivel = computed(() => JOGOS_CATALOGO[jogoTipo.value].disponivel)
@@ -47,7 +85,7 @@ if (comoId.value) {
 
 <template>
   <v-container max-width="760" class="py-6">
-    <v-btn variant="text" size="small" prepend-icon="mdi-arrow-left" :to="`/torneio/${torneioId}`" class="mb-4 text-medium-emphasis px-1">
+    <v-btn v-if="!souJogadorEmPalco" variant="text" size="small" prepend-icon="mdi-arrow-left" :to="`/torneio/${torneioId}`" class="mb-4 text-medium-emphasis px-1">
       Voltar ao torneio
     </v-btn>
 
